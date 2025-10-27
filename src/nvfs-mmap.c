@@ -163,7 +163,7 @@ static void nvfs_mgroup_free(nvfs_mgroup_ptr_t nvfs_mgroup, bool from_dma)
         if(nvfs_mgroup->nvfs_ppages) {
                 for(i = 0; i < nvfs_mgroup->nvfs_blocks_count; i = i + nvfs_block_count_per_page) {
                         if(nvfs_mgroup->nvfs_ppages[i/nvfs_block_count_per_page] != NULL)
-                                put_page(nvfs_mgroup->nvfs_ppages[i/nvfs_block_count_per_page]);
+                                folio_put(page_folio(nvfs_mgroup->nvfs_ppages[i/nvfs_block_count_per_page]));
                 }
                 kfree(nvfs_mgroup->nvfs_ppages);
                 nvfs_mgroup->nvfs_blocks_count = 0;
@@ -255,12 +255,12 @@ static nvfs_mgroup_ptr_t nvfs_get_mgroup_from_vaddr_internal(u64 cpuvaddr)
 		goto out;
 	}
 
-	cur_base_index = page->index >> NVFS_MAX_SHADOW_PAGES_ORDER;
+	cur_base_index = page_folio(page)->index >> NVFS_MAX_SHADOW_PAGES_ORDER;
 
 	nvfs_mgroup = nvfs_mgroup_get(cur_base_index);
 	if (nvfs_mgroup == NULL || unlikely(IS_ERR(nvfs_mgroup))) {
 		nvfs_err("%s:%d nvfs_mgroup is invalid for index %ld cpuvaddr %llx\n",
-			__func__, __LINE__, (unsigned long)page->index,
+			__func__, __LINE__, (unsigned long)page_folio(page)->index,
 			cpuvaddr);
 		goto release_page;
 	}
@@ -273,7 +273,7 @@ static nvfs_mgroup_ptr_t nvfs_get_mgroup_from_vaddr_internal(u64 cpuvaddr)
         }
 
 
-	nvfs_mpage = &nvfs_mgroup->nvfs_metadata[(page->index % NVFS_MAX_SHADOW_PAGES) * nvfs_block_count_per_page];
+	nvfs_mpage = &nvfs_mgroup->nvfs_metadata[(page_folio(page)->index % NVFS_MAX_SHADOW_PAGES) * nvfs_block_count_per_page];
 	if (nvfs_mpage == NULL || nvfs_mpage->nvfs_start_magic != NVFS_START_MAGIC ||
 	    nvfs_mpage->page != page) {
 		nvfs_err("%s:%d found invalid page %p\n",
@@ -408,7 +408,7 @@ nvfs_mgroup_ptr_t nvfs_mgroup_pin_shadow_pages(u64 cpuvaddr, unsigned long lengt
 				pages[j], pages[j]->mapping, pages[j]->flags);
                         goto out;
                 }
-                cur_base_index = (pages[j]->index >> NVFS_MAX_SHADOW_PAGES_ORDER);
+                cur_base_index = (page_folio(pages[j])->index >> NVFS_MAX_SHADOW_PAGES_ORDER);
 		if(j == 0) {
 			nvfs_mgroup = nvfs_mgroup_get(cur_base_index);
 			if(nvfs_mgroup == NULL || unlikely(IS_ERR(nvfs_mgroup)))
@@ -421,12 +421,12 @@ nvfs_mgroup_ptr_t nvfs_mgroup_pin_shadow_pages(u64 cpuvaddr, unsigned long lengt
 			}
 		}
                 BUG_ON((nvfs_mgroup->base_index != cur_base_index));
-                BUG_ON(j != (pages[j]->index % NVFS_MAX_SHADOW_PAGES));
+                BUG_ON(j != (page_folio(pages[j])->index % NVFS_MAX_SHADOW_PAGES));
                 BUG_ON((nvfs_mgroup->nvfs_ppages[j] != pages[j]));
 
 	        nvfs_dbg("Page: %lx , nvfs_mgroup: %p, base_index: %lx page-index: %lx page->flags: %lx \n",
                    (unsigned long)pages[j], nvfs_mgroup, cur_base_index,
-                   pages[j]->index, pages[j]->flags);
+                   page_folio(pages[j])->index, pages[j]->flags);
 		// No need of page reference as we already have one when inserting page to VMA
 #ifdef HAVE_PIN_USER_PAGES_FAST
 		unpin_user_page(pages[j]);
@@ -747,9 +747,9 @@ static int nvfs_mgroup_mmap_internal(struct file *filp, struct vm_area_struct *v
         for (i = 0; i < nvfs_blocks_count; i++) {
 		j = i / nvfs_block_count_per_page;
 		if (nvfs_mgroup->nvfs_ppages[j] == NULL) {
-	                nvfs_mgroup->nvfs_ppages[j] = alloc_page(GFP_USER|__GFP_ZERO);
+	                nvfs_mgroup->nvfs_ppages[j] = &folio_alloc(GFP_USER|__GFP_ZERO, 0)->page;
 	                if (nvfs_mgroup->nvfs_ppages[j]) {
-	                        nvfs_mgroup->nvfs_ppages[j]->index = (base_index * NVFS_MAX_SHADOW_PAGES) + j;
+	                        page_folio(nvfs_mgroup->nvfs_ppages[j])->index = (base_index * NVFS_MAX_SHADOW_PAGES) + j;
 #ifdef CONFIG_FAULT_INJECTION
 				if (nvfs_fault_trigger(&nvfs_vm_insert_page_error)) {
 					ret = -EFAULT;
@@ -765,8 +765,8 @@ static int nvfs_mgroup_mmap_internal(struct file *filp, struct vm_area_struct *v
 	                        nvfs_dbg("vm_insert_page : %d pages: %lx mapping: %p, "
 					  "index: %lx (%lx - %lx) ret: %d  \n",
                 	                        j, (unsigned long)nvfs_mgroup->nvfs_ppages[j],
-						nvfs_mgroup->nvfs_ppages[j]->mapping,
-						nvfs_mgroup->nvfs_ppages[j]->index,
+						page_folio(nvfs_mgroup->nvfs_ppages[j])->mapping,
+						page_folio(nvfs_mgroup->nvfs_ppages[j])->index,
         	                                vma->vm_start + (j * PAGE_SIZE) ,
 						vma->vm_start + (j + 1) * PAGE_SIZE,
 						ret);
@@ -1069,7 +1069,7 @@ int nvfs_mgroup_fill_mpages(nvfs_mgroup_ptr_t nvfs_mgroup, unsigned nr_blocks)
 // eg: page->index relative to base_index (32 + 2) will return 2, 8K
 void nvfs_mgroup_get_gpu_index_and_off(nvfs_mgroup_ptr_t nvfs_mgroup, struct page* page, unsigned long *gpu_index, pgoff_t *offset)
 {
-  unsigned long rel_page_index = (page->index % NVFS_MAX_SHADOW_PAGES);
+  unsigned long rel_page_index = (page_folio(page)->index % NVFS_MAX_SHADOW_PAGES);
   *gpu_index = nvfs_mgroup->nvfsio.cur_gpu_base_index + (rel_page_index >> PAGE_PER_GPU_PAGE_SHIFT);
   if (PAGE_SIZE < GPU_PAGE_SIZE)
 	*offset = (rel_page_index % GPU_PAGE_SHIFT) << PAGE_SHIFT;
@@ -1106,7 +1106,7 @@ static nvfs_mgroup_ptr_t __nvfs_mgroup_from_page(struct page* page, bool check_d
 		return NULL;
 	}
 
-	base_index = (page->index >> NVFS_MAX_SHADOW_PAGES_ORDER);
+	base_index = (page_folio(page)->index >> NVFS_MAX_SHADOW_PAGES_ORDER);
 	if(base_index < NVFS_MIN_BASE_INDEX)
 	{
 		return NULL;
@@ -1124,7 +1124,7 @@ static nvfs_mgroup_ptr_t __nvfs_mgroup_from_page(struct page* page, bool check_d
 	nvfsio = &nvfs_mgroup->nvfsio;
 
 	// check if this is a valid metadata pointing to same page
-	block_idx = (page->index % NVFS_MAX_SHADOW_PAGES) * nvfs_block_count_per_page;
+	block_idx = (page_folio(page)->index % NVFS_MAX_SHADOW_PAGES) * nvfs_block_count_per_page;
 	for (i = block_idx; i < block_idx + nvfs_block_count_per_page; i++) {
 		nvfs_mpage = &nvfs_mgroup->nvfs_metadata[i];
 		if (nvfs_mpage == NULL || nvfs_mpage->nvfs_start_magic != NVFS_START_MAGIC) {
@@ -1146,13 +1146,13 @@ static nvfs_mgroup_ptr_t __nvfs_mgroup_from_page(struct page* page, bool check_d
 	}
 
 	// check if the page start offset is correct within the group
-	if((nvfsio->nvfs_active_blocks_start/nvfs_block_count_per_page) > (page->index % NVFS_MAX_SHADOW_PAGES)) {
+	if((nvfsio->nvfs_active_blocks_start/nvfs_block_count_per_page) > (page_folio(page)->index % NVFS_MAX_SHADOW_PAGES)) {
 		nvfs_mgroup_put(nvfs_mgroup);
 		return ERR_PTR(-EIO);
 	}
 
 	// check if the page end offset is correct within the group
-	if((nvfsio->nvfs_active_blocks_end/nvfs_block_count_per_page) < (page->index % NVFS_MAX_SHADOW_PAGES)) {
+	if((nvfsio->nvfs_active_blocks_end/nvfs_block_count_per_page) < (page_folio(page)->index % NVFS_MAX_SHADOW_PAGES)) {
 		nvfs_mgroup_put(nvfs_mgroup);
 		return ERR_PTR(-EIO);
 	}
@@ -1186,15 +1186,15 @@ nvfs_mgroup_ptr_t nvfs_mgroup_from_page_range(struct page* page, int nblocks, un
 	if (unlikely(IS_ERR(nvfs_mgroup)))
 		return ERR_PTR(-EIO);
 
-	block_idx = (page->index % NVFS_MAX_SHADOW_PAGES) * nvfs_block_count_per_page;
+	block_idx = (page_folio(page)->index % NVFS_MAX_SHADOW_PAGES) * nvfs_block_count_per_page;
 	block_idx += ((start_offset) / NVFS_BLOCK_SIZE);
         for (i = 0; i < nblocks ; i++) {
                 // check the page range is not beyond the issued range
                 nvfsio = &nvfs_mgroup->nvfsio;
 		cur_page = i / nvfs_block_count_per_page;
-                if(((page->index + cur_page) % NVFS_MAX_SHADOW_PAGES) > (nvfsio->nvfs_active_blocks_end/nvfs_block_count_per_page)) {
+                if(((page_folio(page)->index + cur_page) % NVFS_MAX_SHADOW_PAGES) > (nvfsio->nvfs_active_blocks_end/nvfs_block_count_per_page)) {
                         WARN_ON_ONCE(1);
-			nvfs_dbg("page index: %lu cur_page: %u, blockend: %lu\n", page->index, cur_page,
+			nvfs_dbg("page index: %lu cur_page: %u, blockend: %lu\n", page_folio(page)->index, cur_page,
 					nvfsio->nvfs_active_blocks_end);
                         goto err;
                 }
@@ -1253,7 +1253,7 @@ int nvfs_mgroup_metadata_set_dma_state(struct page* page,
 
 	start_block = METADATA_BLOCK_START_INDEX(bv_offset);
 	end_block = METADATA_BLOCK_END_INDEX(bv_offset, bv_len);
-	block_idx = (page->index % NVFS_MAX_SHADOW_PAGES) * nvfs_block_count_per_page;
+	block_idx = (page_folio(page)->index % NVFS_MAX_SHADOW_PAGES) * nvfs_block_count_per_page;
 
 	// For each
 	for (i = block_idx + start_block; i <= block_idx + end_block; i++) {
@@ -1263,7 +1263,7 @@ int nvfs_mgroup_metadata_set_dma_state(struct page* page,
 				nvfs_mpage->nvfs_state != NVFS_IO_DMA_START)
 		{
 		        nvfs_err("%s: found page in wrong state: %d, page->index: %ld at block: %d len: %u and offset: %u\n",
-                                        __func__, nvfs_mpage->nvfs_state, page->index % NVFS_MAX_SHADOW_PAGES, i, bv_len, bv_offset);		
+                                        __func__, nvfs_mpage->nvfs_state, page_folio(page)->index % NVFS_MAX_SHADOW_PAGES, i, bv_len, bv_offset);
 			nvfs_mpage->nvfs_state = NVFS_IO_DMA_ERROR;
 			nvfs_mgroup_put(nvfs_mgroup);
 			WARN_ON_ONCE(1);
@@ -1273,10 +1273,10 @@ int nvfs_mgroup_metadata_set_dma_state(struct page* page,
 		if (nvfs_mpage->nvfs_state == NVFS_IO_QUEUED) {
 			nvfs_mpage->nvfs_state = NVFS_IO_DMA_START;
 			nvfs_dbg("%s : setting page in IO_QUEUED, page->index: %ld at block: %d\n",
-					__func__, page->index % NVFS_MAX_SHADOW_PAGES, i);
+					__func__, page_folio(page)->index % NVFS_MAX_SHADOW_PAGES, i);
 		} else if (nvfs_mpage->nvfs_state == NVFS_IO_DMA_START) {
 			nvfs_dbg("%s : setting page in IO_DMA_START, page->index: %ld at block: %d\n",
-					__func__, page->index % NVFS_MAX_SHADOW_PAGES, i);
+					__func__, page_folio(page)->index % NVFS_MAX_SHADOW_PAGES, i);
 		}
 	}
 
@@ -1296,12 +1296,12 @@ nvfs_mgroup_ptr_t nvfs_mgroup_from_page(struct page* page)
 		return ERR_PTR(-EIO);
 
 	if (PAGE_SIZE < GPU_PAGE_SIZE) {
-		nvfs_mpage = &nvfs_mgroup->nvfs_metadata[page->index % NVFS_MAX_SHADOW_PAGES];
+		nvfs_mpage = &nvfs_mgroup->nvfs_metadata[page_folio(page)->index % NVFS_MAX_SHADOW_PAGES];
 		if(nvfs_mpage->nvfs_state != NVFS_IO_QUEUED &&
 				nvfs_mpage->nvfs_state != NVFS_IO_DMA_START)
 		{
 			nvfs_err("%s: found page in wrong state: %d, page->index: %ld \n",
-					__func__, nvfs_mpage->nvfs_state, page->index % NVFS_MAX_SHADOW_PAGES);
+					__func__, nvfs_mpage->nvfs_state, page_folio(page)->index % NVFS_MAX_SHADOW_PAGES);
 			nvfs_mpage->nvfs_state = NVFS_IO_DMA_ERROR;
 			nvfs_mgroup_put(nvfs_mgroup);
 			WARN_ON_ONCE(1);
