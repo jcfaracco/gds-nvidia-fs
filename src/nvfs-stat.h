@@ -1,4 +1,5 @@
-/* Stats for NVFS 
+/* SPDX-License-Identifier: MIT */
+/* Stats for NVFS
  *
  * Copyright (C) 2021 Nvidia, Corp. All Rights Reserved.
  *
@@ -56,7 +57,7 @@ extern atomic64_t prev_write_latency;
 extern atomic64_t prev_batch_avg_latency;
 
 /*
- * Operation counters - Declaration 
+ * Operation counters - Declaration
  */
 
 extern atomic64_t nvfs_n_reads;
@@ -130,14 +131,14 @@ extern const struct file_operations nvfs_stats_fops;
 
 static inline void nvfs_stat(atomic_t *stat)
 {
-        atomic_inc(stat);
+	atomic_inc(stat);
 }
 
 static inline void nvfs_stat_d(atomic_t *stat)
 {
 	#ifdef CONFIG_NVFS_DEBUG_STATS
 	if (unlikely(atomic_sub_return(1L, stat) < 0)) {
-		pr_err("encountered -ve stat :%d\n", atomic_read(stat)); 
+		pr_err("encountered -ve stat :%d\n", atomic_read(stat));
 		WARN_ON_ONCE(1);
 	}
 	#else
@@ -157,17 +158,17 @@ static inline void nvfs_stat_reset(atomic_t *stat)
 
 static inline void nvfs_stat64(atomic64_t *stat)
 {
-        atomic64_inc(stat);
+	atomic64_inc(stat);
 }
 
 static inline void nvfs_stat64_d(atomic64_t *stat)
 {
 	#ifdef CONFIG_NVFS_DEBUG_STATS
 	if (unlikely(atomic64_sub_return(1LL, stat) < 0)) {
-#if LINUX_VERSION_CODE <  KERNEL_VERSION(5,0,0)
-		pr_err("encountered -ve stat :%ld\n", atomic64_read(stat)); 
+#if LINUX_VERSION_CODE <  KERNEL_VERSION(5, 0, 0)
+		pr_err("encountered -ve stat :%ld\n", atomic64_read(stat));
 #else
-		pr_err("encountered -ve stat :%lld\n", atomic64_read(stat)); 
+		pr_err("encountered -ve stat :%lld\n", atomic64_read(stat));
 #endif
 		WARN_ON_ONCE(1);
 	}
@@ -178,12 +179,12 @@ static inline void nvfs_stat64_d(atomic64_t *stat)
 
 static inline void nvfs_stat64_add(long i, atomic64_t *stat)
 {
-        atomic64_add(i, stat);
+	atomic64_add(i, stat);
 }
 
 static inline void nvfs_stat64_sub(long i, atomic64_t *stat)
 {
-        atomic64_sub(i, stat);
+	atomic64_sub(i, stat);
 }
 
 static inline s64 nvfs_stat64_read(atomic64_t *stat)
@@ -203,22 +204,22 @@ static inline u64 nvfs_stat64_jiffies2usec(atomic64_t *stat)
 
 static inline void nvfs_stat64_ktime(ktime_t *now)
 {
-        *now = ktime_get();
+	*now = ktime_get();
 }
 
 void nvfs_update_read_throughput(unsigned long total_bytes,
 				atomic64_t *stat);
 
 void nvfs_update_read_latency(unsigned long avg_latency,
-                                atomic64_t *stat);
+				atomic64_t *stat);
 
 void nvfs_update_write_latency(unsigned long avg_latency,
-                                atomic64_t *stat);
+				atomic64_t *stat);
 
 void nvfs_update_batch_latency(unsigned long avg_latency,
-                                atomic64_t *stat);
+				atomic64_t *stat);
 void nvfs_update_write_throughput(unsigned long total_bytes,
-                                atomic64_t *stat);
+				atomic64_t *stat);
 
 struct nvfs_gpu_args;
 void nvfs_update_free_gpustat(struct nvfs_gpu_args *gpuinfo);

@@ -117,8 +117,8 @@ static void nvfs_reset_gpuinfo_stats(void)
 	rcu_read_lock();
 	hash_for_each_rcu(nvfs_gpu_stat_hash, temp, gpustat, hash_link)
 	{
-              nvfs_stat64_reset(&gpustat->max_bar_memory_pinned);
-        }
+	      nvfs_stat64_reset(&gpustat->max_bar_memory_pinned);
+	}
 	rcu_read_unlock();
 }
 
@@ -131,20 +131,20 @@ static void nvfs_print_gpuinfo(struct seq_file *m)
 
 	hash_for_each_rcu(nvfs_gpu_stat_hash, temp, gpustat, hash_link)
 	{
-        seq_printf(m, "GPU "PCI_INFO_FMT" uuid:%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x : "
+	seq_printf(m, "GPU "PCI_INFO_FMT" uuid:%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x : "
 #ifdef HAVE_ATOMIC64_LONG
-                "Registered_MiB=%lu Cache_MiB=%lu max_pinned_MiB=%lu ",
+		"Registered_MiB=%lu Cache_MiB=%lu max_pinned_MiB=%lu ",
 #else
-                "Registered_MiB=%llu Cache_MiB=%llu max_pinned_MiB=%llu ",
+		"Registered_MiB=%llu Cache_MiB=%llu max_pinned_MiB=%llu ",
 #endif
-                    PCI_INFO_ARGS(nvfs_lookup_gpu_hash_index_entry(gpustat->gpu_index)),
-                    gpustat->gpu_uuid[0], gpustat->gpu_uuid[1], gpustat->gpu_uuid[2], gpustat->gpu_uuid[3],
-                    gpustat->gpu_uuid[4], gpustat->gpu_uuid[5], gpustat->gpu_uuid[6], gpustat->gpu_uuid[7],
-                    gpustat->gpu_uuid[8], gpustat->gpu_uuid[9], gpustat->gpu_uuid[10], gpustat->gpu_uuid[11],
-                    gpustat->gpu_uuid[12], gpustat->gpu_uuid[13], gpustat->gpu_uuid[14], gpustat->gpu_uuid[15],
-                    BYTES_TO_MB(atomic64_read(&gpustat->active_bar_memory_pinned)),
-                    BYTES_TO_MB(atomic64_read(&gpustat->active_bounce_buffer_memory)),
-                    BYTES_TO_MB(atomic64_read(&gpustat->max_bar_memory_pinned)));
+		    PCI_INFO_ARGS(nvfs_lookup_gpu_hash_index_entry(gpustat->gpu_index)),
+		    gpustat->gpu_uuid[0], gpustat->gpu_uuid[1], gpustat->gpu_uuid[2], gpustat->gpu_uuid[3],
+		    gpustat->gpu_uuid[4], gpustat->gpu_uuid[5], gpustat->gpu_uuid[6], gpustat->gpu_uuid[7],
+		    gpustat->gpu_uuid[8], gpustat->gpu_uuid[9], gpustat->gpu_uuid[10], gpustat->gpu_uuid[11],
+		    gpustat->gpu_uuid[12], gpustat->gpu_uuid[13], gpustat->gpu_uuid[14], gpustat->gpu_uuid[15],
+		    BYTES_TO_MB(atomic64_read(&gpustat->active_bar_memory_pinned)),
+		    BYTES_TO_MB(atomic64_read(&gpustat->active_bounce_buffer_memory)),
+		    BYTES_TO_MB(atomic64_read(&gpustat->max_bar_memory_pinned)));
 
 		// stats for cross traffic
 		if (nvfs_peer_stats_enabled) {
@@ -168,29 +168,29 @@ static int nvfs_stats_show(struct seq_file *m, void *v) {
 #undef GDS_STRING2
 #undef GDS_STRING
 #endif
-        seq_printf(m, "NVFS statistics(ver: %d.0)\n", NVFS_STAT_VERSION);
+	seq_printf(m, "NVFS statistics(ver: %d.0)\n", NVFS_STAT_VERSION);
 	seq_printf(m, "NVFS Driver(version: %u.%u.%u)\n",
 			nvfs_major_version(nvfs_driver_version()),
 			nvfs_minor_version(nvfs_driver_version()),
 			NVFS_DRIVER_PATCH_VERSION);
-#ifdef GDS_DMABUF_SUPPORTED 
-        seq_printf(m, "Mellanox PeerDirect Supported: %s\n", "True");
+#ifdef GDS_DMABUF_SUPPORTED
+	seq_printf(m, "Mellanox PeerDirect Supported: %s\n", "True");
 #else
-        {
-                struct path path;
-                int ret = kern_path("/sys/kernel/mm/memory_peers/nv_mem/version", LOOKUP_FOLLOW, &path);
-                if(ret)
-                        seq_printf(m, "Mellanox PeerDirect Supported: %s\n", "False");
-                else
-                        seq_printf(m, "Mellanox PeerDirect Supported: %s\n", "True");
-        }
+	{
+		struct path path;
+		int ret = kern_path("/sys/kernel/mm/memory_peers/nv_mem/version", LOOKUP_FOLLOW, &path);
+		if (ret)
+			seq_printf(m, "Mellanox PeerDirect Supported: %s\n", "False");
+		else
+			seq_printf(m, "Mellanox PeerDirect Supported: %s\n", "True");
+	}
 #endif
-        seq_printf(m, "IO stats: %s, peer IO stats: %s\n",
-                   nvfs_rw_stats_enabled ? "Enabled" : "Disabled",
-                   nvfs_peer_stats_enabled ? "Enabled" : "Disabled");
+	seq_printf(m, "IO stats: %s, peer IO stats: %s\n",
+		   nvfs_rw_stats_enabled ? "Enabled" : "Disabled",
+		   nvfs_peer_stats_enabled ? "Enabled" : "Disabled");
 
-        seq_printf(m, "Logging level: %s\n\n",
-                   (nvfs_dbg_enabled ? "debug" : (nvfs_info_enabled ? "info" : "warn")));
+	seq_printf(m, "Logging level: %s\n\n",
+		   (nvfs_dbg_enabled ? "debug" : (nvfs_info_enabled ? "info" : "warn")));
 
 #ifdef HAVE_ATOMIC64_LONG
 	seq_printf(m, "Active Shadow-Buffer (MiB): %lu\n",
@@ -201,7 +201,7 @@ static int nvfs_stats_show(struct seq_file *m, void *v) {
 	seq_printf(m, "Active Process: %u\n", atomic_read(&nvfs_n_op_process) / nvfs_get_device_count());
 
 
-        if (nvfs_rw_stats_enabled) {
+	if (nvfs_rw_stats_enabled) {
 #ifdef HAVE_ATOMIC64_LONG
 	seq_printf(m, "Batches				: n=%lu ok=%lu err=%u Avg-Submit-Latency(usec)=%u\n",
 #else
@@ -211,8 +211,8 @@ static int nvfs_stats_show(struct seq_file *m, void *v) {
 	    atomic64_read(&nvfs_n_batches_ok),
 	    atomic_read(&nvfs_n_batch_err),
 	    atomic_read(&nvfs_batch_submit_avg_latency));
-        }
-        if (nvfs_rw_stats_enabled) {
+	}
+	if (nvfs_rw_stats_enabled) {
 #ifdef HAVE_ATOMIC64_LONG
 	seq_printf(m, "Reads				: n=%lu ok=%lu err=%u readMiB=%lu io_state_err=%u\n",
 #else
@@ -227,11 +227,11 @@ static int nvfs_stats_show(struct seq_file *m, void *v) {
 	seq_printf(m, "Reads				: Bandwidth(MiB/s)=%u Avg-Latency(usec)=%u\n",
 	    atomic_read(&nvfs_read_throughput),
 	    atomic_read(&nvfs_avg_read_latency));
-        } else {
+	} else {
 	seq_printf(m, "Reads				: err=%u io_state_err=%u\n",
 	    atomic_read(&nvfs_n_read_err),
 	    atomic_read(&nvfs_n_read_iostate_err));
-        }
+	}
 
 #ifdef HAVE_ATOMIC64_LONG
 	seq_printf(m, "Sparse Reads		        : n=%lu io=%lu holes=%lu pages=%lu \n",
@@ -243,7 +243,7 @@ static int nvfs_stats_show(struct seq_file *m, void *v) {
 	    atomic64_read(&nvfs_n_reads_sparse_region),
 	    atomic64_read(&nvfs_n_reads_sparse_pages));
 
-        if (nvfs_rw_stats_enabled) {
+	if (nvfs_rw_stats_enabled) {
 #ifdef HAVE_ATOMIC64_LONG
 	seq_printf(m, "Writes				: n=%lu ok=%lu err=%u writeMiB=%lu io_state_err=%u pg-cache=%u pg-cache-fail=%u pg-cache-eio=%u\n",
 #else
@@ -261,14 +261,14 @@ static int nvfs_stats_show(struct seq_file *m, void *v) {
 	seq_printf(m, "Writes				: Bandwidth(MiB/s)=%u Avg-Latency(usec)=%u\n",
 	    atomic_read(&nvfs_write_throughput),
 	    atomic_read(&nvfs_avg_write_latency));
-        } else {
+	} else {
 	seq_printf(m, "Writes				: err=%u io_state_err=%u pg-cache=%u pg-cache-fail=%u pg-cache-eio=%u\n",
 	    atomic_read(&nvfs_n_write_err),
 	    atomic_read(&nvfs_n_write_iostate_err),
 	    atomic_read(&nvfs_n_pg_cache),
 	    atomic_read(&nvfs_n_pg_cache_fail),
 	    atomic_read(&nvfs_n_pg_cache_eio));
-        }
+	}
 
 #ifdef HAVE_ATOMIC64_LONG
 	seq_printf(m, "Mmap				: n=%lu ok=%lu err=%u munmap=%lu\n",
@@ -299,7 +299,7 @@ static int nvfs_stats_show(struct seq_file *m, void *v) {
 		atomic_read(&nvfs_n_err_dma_map),
 		atomic_read(&nvfs_n_err_dma_ref));
 
-        seq_printf(m, "Ops				: Read=%u Write=%u BatchIO=%u\n",
+	seq_printf(m, "Ops				: Read=%u Write=%u BatchIO=%u\n",
 	    atomic_read(&nvfs_n_op_reads),
 	    atomic_read(&nvfs_n_op_writes),
 	    atomic_read(&nvfs_n_op_batches));
@@ -312,7 +312,7 @@ static int nvfs_stats_show(struct seq_file *m, void *v) {
 /*
  * Description: resets any cumulative counters including errors;
  *              self managed counters are not reset
- * 
+ *
  */
 static int nvfs_stats_reset(void) {
 
@@ -373,7 +373,7 @@ static int nvfs_stats_reset(void) {
 	nvfs_stat_reset(&nvfs_n_pg_cache_fail);
 	nvfs_stat_reset(&nvfs_n_pg_cache_eio);
 
-        nvfs_reset_gpuinfo_stats();
+	nvfs_reset_gpuinfo_stats();
 	nvfs_reset_peer_affinity_stats();
 	return 0;
 }
@@ -389,7 +389,7 @@ static struct nvfs_gpu_stat *nvfs_get_gpustat_unlocked(uint64_t gpu_uuid_hash)
 		}
 	}
 
-	return NULL; 
+	return NULL;
 }
 
 void nvfs_update_free_gpustat(struct nvfs_gpu_args *gpuinfo) {
@@ -423,7 +423,7 @@ void nvfs_update_alloc_gpustat(struct nvfs_gpu_args *gpuinfo) {
 
 	gpu_uuid_hash = *(uint64_t *)gpuinfo->page_table->gpu_uuid;
 	spin_lock(&lock);
-	gpustat = nvfs_get_gpustat_unlocked(gpu_uuid_hash);	
+	gpustat = nvfs_get_gpustat_unlocked(gpu_uuid_hash);
 	if (gpustat == NULL) {
 		gpustat = kzalloc(sizeof(struct nvfs_gpu_stat), GFP_KERNEL);
 		if (!gpustat) {
@@ -438,7 +438,7 @@ void nvfs_update_alloc_gpustat(struct nvfs_gpu_args *gpuinfo) {
 	}
 
 	spin_unlock(&lock);
-	
+
 	if (gpuinfo->is_bounce_buffer) {
 		nvfs_stat64_add(gpuinfo->gpu_buf_len, &(gpustat->active_bounce_buffer_memory));
 	} else {
@@ -451,157 +451,157 @@ void nvfs_update_alloc_gpustat(struct nvfs_gpu_args *gpuinfo) {
 }
 
 void nvfs_update_read_throughput(unsigned long total_bytes,
-                                atomic64_t *stat)
+				atomic64_t *stat)
 {
-        int delta;
-        int throughput;
+	int delta;
+	int throughput;
 
-        if (atomic_read(&prev_read_throughput) == 0) {
-                atomic_set(&prev_read_throughput, ktime_to_ms(ktime_get()));
-                nvfs_stat64_add(total_bytes, stat);
-                return;
-        }
+	if (atomic_read(&prev_read_throughput) == 0) {
+		atomic_set(&prev_read_throughput, ktime_to_ms(ktime_get()));
+		nvfs_stat64_add(total_bytes, stat);
+		return;
+	}
 
-        delta = ktime_to_ms(ktime_get()) - atomic_read(&prev_read_throughput);
+	delta = ktime_to_ms(ktime_get()) - atomic_read(&prev_read_throughput);
 
-        if (delta > MSEC_PER_SEC) {
-                nvfs_stat64_add(total_bytes, stat);
-                throughput = (BYTES_TO_MB(atomic64_read(stat)) /
-                                (delta / MSEC_PER_SEC));
-                atomic_set(&nvfs_read_throughput, throughput);
-                nvfs_stat64_reset(stat);
-                atomic_set(&prev_read_throughput, ktime_to_ms(ktime_get()));
-        } else {
-                nvfs_stat64_add(total_bytes, stat);
-        }
+	if (delta > MSEC_PER_SEC) {
+		nvfs_stat64_add(total_bytes, stat);
+		throughput = (BYTES_TO_MB(atomic64_read(stat)) /
+				(delta / MSEC_PER_SEC));
+		atomic_set(&nvfs_read_throughput, throughput);
+		nvfs_stat64_reset(stat);
+		atomic_set(&prev_read_throughput, ktime_to_ms(ktime_get()));
+	} else {
+		nvfs_stat64_add(total_bytes, stat);
+	}
 }
 
 void nvfs_update_read_latency(unsigned long avg_latency,
-                                atomic64_t *stat)
+				atomic64_t *stat)
 {
-        int delta;
-        int average_latency;
+	int delta;
+	int average_latency;
 
-        if (atomic64_read(&prev_read_latency) == 0) {
-                atomic64_set(&prev_read_latency, ktime_to_us(ktime_get()));
-                nvfs_stat(&nvfs_read_ops_per_sec);
-                nvfs_stat64_add(avg_latency, stat);
-                return;
-        }
+	if (atomic64_read(&prev_read_latency) == 0) {
+		atomic64_set(&prev_read_latency, ktime_to_us(ktime_get()));
+		nvfs_stat(&nvfs_read_ops_per_sec);
+		nvfs_stat64_add(avg_latency, stat);
+		return;
+	}
 
-        delta = ktime_to_us(ktime_get()) - atomic64_read(&prev_read_latency);
+	delta = ktime_to_us(ktime_get()) - atomic64_read(&prev_read_latency);
 
-        if (delta > USEC_PER_SEC) {
-                nvfs_stat64_add(avg_latency, stat);
-                nvfs_stat(&nvfs_read_ops_per_sec);
+	if (delta > USEC_PER_SEC) {
+		nvfs_stat64_add(avg_latency, stat);
+		nvfs_stat(&nvfs_read_ops_per_sec);
 
-                average_latency = div64_safe(atomic64_read(stat),
-                                        (long)atomic_read(&nvfs_read_ops_per_sec));
-                atomic_set(&nvfs_avg_read_latency, average_latency);
-                nvfs_stat64_reset(stat);
-                nvfs_stat_reset(&nvfs_read_ops_per_sec);
+		average_latency = div64_safe(atomic64_read(stat),
+					(long)atomic_read(&nvfs_read_ops_per_sec));
+		atomic_set(&nvfs_avg_read_latency, average_latency);
+		nvfs_stat64_reset(stat);
+		nvfs_stat_reset(&nvfs_read_ops_per_sec);
 
-                atomic64_set(&prev_read_latency, ktime_to_us(ktime_get()));
-        } else {
-                nvfs_stat64_add(avg_latency, stat);
-                nvfs_stat(&nvfs_read_ops_per_sec);
-        }
+		atomic64_set(&prev_read_latency, ktime_to_us(ktime_get()));
+	} else {
+		nvfs_stat64_add(avg_latency, stat);
+		nvfs_stat(&nvfs_read_ops_per_sec);
+	}
 }
 
 void nvfs_update_batch_latency(unsigned long avg_latency,
-                                atomic64_t *stat)
+				atomic64_t *stat)
 {
-        int delta;
-        int average_latency;
+	int delta;
+	int average_latency;
 
-        if (atomic64_read(&prev_batch_submit_avg_latency) == 0) {
-                atomic64_set(&prev_batch_submit_avg_latency, ktime_to_us(ktime_get()));
-                nvfs_stat(&nvfs_batch_ops_per_sec);
-                nvfs_stat64_add(avg_latency, stat);
-                return;
-        }
+	if (atomic64_read(&prev_batch_submit_avg_latency) == 0) {
+		atomic64_set(&prev_batch_submit_avg_latency, ktime_to_us(ktime_get()));
+		nvfs_stat(&nvfs_batch_ops_per_sec);
+		nvfs_stat64_add(avg_latency, stat);
+		return;
+	}
 
-        delta = ktime_to_us(ktime_get()) - atomic64_read(&prev_batch_submit_avg_latency);
+	delta = ktime_to_us(ktime_get()) - atomic64_read(&prev_batch_submit_avg_latency);
 
-        if (delta > USEC_PER_SEC) {
-                nvfs_stat64_add(avg_latency, stat);
-                nvfs_stat(&nvfs_batch_ops_per_sec);
+	if (delta > USEC_PER_SEC) {
+		nvfs_stat64_add(avg_latency, stat);
+		nvfs_stat(&nvfs_batch_ops_per_sec);
 
-                average_latency = div64_safe(atomic64_read(stat),
-                                        (unsigned long) atomic_read(&nvfs_batch_ops_per_sec));
-                atomic_set(&nvfs_batch_submit_avg_latency, average_latency);
-                nvfs_stat64_reset(stat);
-                nvfs_stat_reset(&nvfs_batch_ops_per_sec);
+		average_latency = div64_safe(atomic64_read(stat),
+					(unsigned long) atomic_read(&nvfs_batch_ops_per_sec));
+		atomic_set(&nvfs_batch_submit_avg_latency, average_latency);
+		nvfs_stat64_reset(stat);
+		nvfs_stat_reset(&nvfs_batch_ops_per_sec);
 
-                atomic64_set(&prev_batch_submit_avg_latency, ktime_to_us(ktime_get()));
-        } else {
-                nvfs_stat64_add(avg_latency, stat);
-                nvfs_stat(&nvfs_batch_ops_per_sec);
-        }
+		atomic64_set(&prev_batch_submit_avg_latency, ktime_to_us(ktime_get()));
+	} else {
+		nvfs_stat64_add(avg_latency, stat);
+		nvfs_stat(&nvfs_batch_ops_per_sec);
+	}
 }
 
 
 void nvfs_update_write_latency(unsigned long avg_latency,
-                                atomic64_t *stat)
+				atomic64_t *stat)
 {
-        int delta;
-        int average_latency;
+	int delta;
+	int average_latency;
 
-        if (atomic64_read(&prev_write_latency) == 0) {
-                atomic64_set(&prev_write_latency, ktime_to_us(ktime_get()));
-                nvfs_stat(&nvfs_write_ops_per_sec);
-                nvfs_stat64_add(avg_latency, stat);
-                return;
-        }
+	if (atomic64_read(&prev_write_latency) == 0) {
+		atomic64_set(&prev_write_latency, ktime_to_us(ktime_get()));
+		nvfs_stat(&nvfs_write_ops_per_sec);
+		nvfs_stat64_add(avg_latency, stat);
+		return;
+	}
 
-        delta = ktime_to_us(ktime_get()) - atomic64_read(&prev_write_latency);
+	delta = ktime_to_us(ktime_get()) - atomic64_read(&prev_write_latency);
 
-        if (delta > USEC_PER_SEC) {
-                nvfs_stat64_add(avg_latency, stat);
-                nvfs_stat(&nvfs_write_ops_per_sec);
+	if (delta > USEC_PER_SEC) {
+		nvfs_stat64_add(avg_latency, stat);
+		nvfs_stat(&nvfs_write_ops_per_sec);
 
-                average_latency = div64_safe(atomic64_read(stat),
-                                        (unsigned long) atomic_read(&nvfs_write_ops_per_sec));
-                atomic_set(&nvfs_avg_write_latency, average_latency);
-                nvfs_stat64_reset(stat);
-                nvfs_stat_reset(&nvfs_write_ops_per_sec);
+		average_latency = div64_safe(atomic64_read(stat),
+					(unsigned long) atomic_read(&nvfs_write_ops_per_sec));
+		atomic_set(&nvfs_avg_write_latency, average_latency);
+		nvfs_stat64_reset(stat);
+		nvfs_stat_reset(&nvfs_write_ops_per_sec);
 
-                atomic64_set(&prev_write_latency, ktime_to_us(ktime_get()));
-        } else {
-                nvfs_stat64_add(avg_latency, stat);
-                nvfs_stat(&nvfs_write_ops_per_sec);
-        }
+		atomic64_set(&prev_write_latency, ktime_to_us(ktime_get()));
+	} else {
+		nvfs_stat64_add(avg_latency, stat);
+		nvfs_stat(&nvfs_write_ops_per_sec);
+	}
 }
 
 void nvfs_update_write_throughput(unsigned long total_bytes,
-                                atomic64_t *stat)
+				atomic64_t *stat)
 {
-        int delta;
-        int throughput;
+	int delta;
+	int throughput;
 
-        if (atomic_read(&prev_write_throughput) == 0) {
-                atomic_set(&prev_write_throughput, ktime_to_ms(ktime_get()));
-                nvfs_stat64_add(total_bytes, stat);
-                return;
-        }
+	if (atomic_read(&prev_write_throughput) == 0) {
+		atomic_set(&prev_write_throughput, ktime_to_ms(ktime_get()));
+		nvfs_stat64_add(total_bytes, stat);
+		return;
+	}
 
-        delta = ktime_to_ms(ktime_get()) - atomic_read(&prev_write_throughput);
+	delta = ktime_to_ms(ktime_get()) - atomic_read(&prev_write_throughput);
 
-        if (delta > MSEC_PER_SEC) {
-                nvfs_stat64_add(total_bytes, stat);
-                throughput = (BYTES_TO_MB(atomic64_read(stat)) /
-                                (delta / MSEC_PER_SEC));
-                atomic_set(&nvfs_write_throughput, throughput);
-                nvfs_stat64_reset(stat);
-                atomic_set(&prev_write_throughput, ktime_to_ms(ktime_get()));
-        } else {
-                nvfs_stat64_add(total_bytes, stat);
-        }
+	if (delta > MSEC_PER_SEC) {
+		nvfs_stat64_add(total_bytes, stat);
+		throughput = (BYTES_TO_MB(atomic64_read(stat)) /
+				(delta / MSEC_PER_SEC));
+		atomic_set(&nvfs_write_throughput, throughput);
+		nvfs_stat64_reset(stat);
+		atomic_set(&prev_write_throughput, ktime_to_ms(ktime_get()));
+	} else {
+		nvfs_stat64_add(total_bytes, stat);
+	}
 }
 
 void nvfs_stat_init() {
-        spin_lock_init(&lock);
-        hash_init(nvfs_gpu_stat_hash);
+	spin_lock_init(&lock);
+	hash_init(nvfs_gpu_stat_hash);
 }
 
 void nvfs_stat_destroy() {
@@ -620,7 +620,7 @@ void nvfs_stat_destroy() {
  */
 static int nvfs_stats_open(struct inode *inode, struct file *file)
 {
-        return single_open(file, nvfs_stats_show, NULL);
+	return single_open(file, nvfs_stats_show, NULL);
 }
 
 /*
@@ -634,18 +634,18 @@ static ssize_t nvfs_stats_clear(struct file *file, const char __user *buf, size_
 
 #ifdef HAVE_STRUCT_PROC_OPS
 const struct proc_ops nvfs_stats_fops = {
-        .proc_open  	= nvfs_stats_open,
-        .proc_read     	= seq_read,
-        .proc_write    	= nvfs_stats_clear,
-        .proc_lseek    	= seq_lseek,
-        .proc_release	= single_release,
+	.proc_open  	= nvfs_stats_open,
+	.proc_read     	= seq_read,
+	.proc_write    	= nvfs_stats_clear,
+	.proc_lseek    	= seq_lseek,
+	.proc_release	= single_release,
 };
 #else
 const struct file_operations nvfs_stats_fops = {
-        .open           = nvfs_stats_open,
-        .read           = seq_read,
-        .write          = nvfs_stats_clear,
-        .llseek         = seq_lseek,
-        .release        = single_release,
+	.open           = nvfs_stats_open,
+	.read           = seq_read,
+	.write          = nvfs_stats_clear,
+	.llseek         = seq_lseek,
+	.release        = single_release,
 };
 #endif

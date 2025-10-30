@@ -36,7 +36,7 @@
 
 // check NVFS page contiguity
 #define GPU_BIOVEC_PHYS_MERGEABLE(bvprv, bvcurr) \
-        (page_index((bvprv)->bv_page) == (page_index((bvcurr)->bv_page) - 1))
+	(page_index((bvprv)->bv_page) == (page_index((bvcurr)->bv_page) - 1))
 
 #ifdef HAVE_VM_FAULT
 	typedef vm_fault_t nvfs_vma_fault_t;

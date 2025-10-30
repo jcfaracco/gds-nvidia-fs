@@ -112,7 +112,7 @@ static const struct file_operations nvfs_version_ops = {
 	.llseek		= seq_lseek,
 	.release	= single_release,
 };
-#endif	
+#endif
 // used by library for parsing
 static int nvfs_bridge_show(struct seq_file *m, void *v)
 {

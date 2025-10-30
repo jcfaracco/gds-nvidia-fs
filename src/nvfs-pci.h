@@ -153,17 +153,17 @@ static inline const char* nvfs_pdevinfo_get_class_name(uint64_t pdevinfo) {
 // embed device link speed to pdevinfo
 // note : from spec, link_speed cannot be greater than a nibble
 static inline void nvfs_pdevinfo_set_link_speed(uint64_t *pdevinfo,
-                                                enum pci_bus_speed link_speed) {
+						enum pci_bus_speed link_speed) {
     size_t i = 0;
     size_t speed_idx = 0;
 
     for (i = 0; i < MAX_LNKWIDTH_ENTRIES; i++) {
-        if (link_speed == nvfs_pcie_link_speed_table[i]) {
-            speed_idx = i;
-            speed_idx <<= (NVFS_PDEVINFO_LNKSPEED_BIT - 1);
-            *pdevinfo |= speed_idx;
-            break;
-        }
+	if (link_speed == nvfs_pcie_link_speed_table[i]) {
+	    speed_idx = i;
+	    speed_idx <<= (NVFS_PDEVINFO_LNKSPEED_BIT - 1);
+	    *pdevinfo |= speed_idx;
+	    break;
+	}
     }
 }
 
@@ -178,16 +178,16 @@ static inline u32 nvfs_pdevinfo_get_link_speed(uint64_t pdevinfo) {
 // note: from spec, link_width can be greater than a nibble.
 // So use an index for storing attribute for link width
 static inline void nvfs_pdevinfo_set_link_width(uint64_t *pdevinfo,
-                                                enum pcie_link_width link_width) {
+						enum pcie_link_width link_width) {
     size_t i = 0;
     uint64_t width_idx = 0;
     for (i = 0; i < MAX_LNKWIDTH_ENTRIES; i++) {
-        if (link_width == nvfs_pcie_link_width_table[i]) {
-            width_idx = i;
-            width_idx <<= (NVFS_PDEVINFO_LNKWIDTH_BIT - 1);
-            *pdevinfo |= width_idx;
-            break;
-        }
+	if (link_width == nvfs_pcie_link_width_table[i]) {
+	    width_idx = i;
+	    width_idx <<= (NVFS_PDEVINFO_LNKWIDTH_BIT - 1);
+	    *pdevinfo |= width_idx;
+	    break;
+	}
     }
 }
 
