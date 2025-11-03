@@ -102,16 +102,17 @@ REL_MINOR  := $(word 3,$(REL))
 
 all: module
 
-nv_configure:
-	@ ./configure $(KVER)
+config-host.h:
+	@./configure
 
-nv_symbols:
+nv.symvers:
 	@ echo "Picking NVIDIA driver sources from NVIDIA_SRC_DIR=$(NVIDIA_SRC_DIR). If that does not meet your expectation, you might have a stale driver still around and that might cause problems."
-	@ chmod +x ./create_nv.symvers.sh
 	@ ./create_nv.symvers.sh
+
+nv_symbols: nv.symvers
 	@ cat nv.symvers >> Module.symvers
 
-module: nv_symbols nv_configure
+module: nv_symbols config-host.h
 	@ KCPPFLAGS="$(NVFS_MODULE_FLAGS) -DNVFS_BATCH_SUPPORT=y" CONFIG_NVFS_BATCH_SUPPORT=y CONFIG_NVFS_STATS=y $(MAKE) -j4 -C $(KDIR) $(MAKE_PARAMS) M=$$PWD modules
 
 install:
