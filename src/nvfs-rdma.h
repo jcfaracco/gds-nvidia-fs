@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MIT */
 /*
  * Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
  *
@@ -30,12 +31,12 @@ void nvfs_set_curr_rdma_seg_to_mgroup(
 		nvfs_mgroup_ptr_t nvfs_mgroup, int rdma_segment);
 
 int nvfs_set_rdma_reg_info_to_mgroup(
-		nvfs_ioctl_set_rdma_reg_info_args_t* rdma_reg_info_args);
+		nvfs_ioctl_set_rdma_reg_info_args_t *rdma_reg_info_args);
 
 
 int nvfs_get_rdma_reg_info_from_mgroup(
-		nvfs_ioctl_get_rdma_reg_info_args_t* rdma_reg_info_args);
+		nvfs_ioctl_get_rdma_reg_info_args_t *rdma_reg_info_args);
 
 int nvfs_clear_rdma_reg_info_in_mgroup(
-		nvfs_ioctl_clear_rdma_reg_info_args_t* rdma_clear_info_args);
+		nvfs_ioctl_clear_rdma_reg_info_args_t *rdma_clear_info_args);
 #endif

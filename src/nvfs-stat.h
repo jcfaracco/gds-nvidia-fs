@@ -1,4 +1,5 @@
-/* Stats for NVFS 
+/* SPDX-License-Identifier: MIT */
+/* Stats for NVFS
  *
  * Copyright (C) 2021 Nvidia, Corp. All Rights Reserved.
  *
@@ -34,7 +35,7 @@ static inline u64 jiffies_now(void)
 
 static inline s64 ktime_ns_delta(const ktime_t later, const ktime_t earlier)
 {
-    return ktime_to_ns(ktime_sub(later, earlier));
+	return ktime_to_ns(ktime_sub(later, earlier));
 }
 
 #ifdef CONFIG_NVFS_STATS
@@ -56,7 +57,7 @@ extern atomic64_t prev_write_latency;
 extern atomic64_t prev_batch_avg_latency;
 
 /*
- * Operation counters - Declaration 
+ * Operation counters - Declaration
  */
 
 extern atomic64_t nvfs_n_reads;
@@ -130,19 +131,19 @@ extern const struct file_operations nvfs_stats_fops;
 
 static inline void nvfs_stat(atomic_t *stat)
 {
-        atomic_inc(stat);
+	atomic_inc(stat);
 }
 
 static inline void nvfs_stat_d(atomic_t *stat)
 {
-	#ifdef CONFIG_NVFS_DEBUG_STATS
+#ifdef CONFIG_NVFS_DEBUG_STATS
 	if (unlikely(atomic_sub_return(1L, stat) < 0)) {
-		pr_err("encountered -ve stat :%d\n", atomic_read(stat)); 
+		pr_err("encountered -ve stat :%d\n", atomic_read(stat));
 		WARN_ON_ONCE(1);
 	}
-	#else
+#else
 		atomic_dec(stat);
-	#endif
+#endif
 }
 
 static inline void nvfs_stat64_reset(atomic64_t *stat)
@@ -157,33 +158,29 @@ static inline void nvfs_stat_reset(atomic_t *stat)
 
 static inline void nvfs_stat64(atomic64_t *stat)
 {
-        atomic64_inc(stat);
+	atomic64_inc(stat);
 }
 
 static inline void nvfs_stat64_d(atomic64_t *stat)
 {
-	#ifdef CONFIG_NVFS_DEBUG_STATS
+#ifdef CONFIG_NVFS_DEBUG_STATS
 	if (unlikely(atomic64_sub_return(1LL, stat) < 0)) {
-#if LINUX_VERSION_CODE <  KERNEL_VERSION(5,0,0)
-		pr_err("encountered -ve stat :%ld\n", atomic64_read(stat)); 
-#else
-		pr_err("encountered -ve stat :%lld\n", atomic64_read(stat)); 
-#endif
+		pr_err("encountered -ve stat :%lld\n", atomic64_read(stat));
 		WARN_ON_ONCE(1);
 	}
-	#else
+#else
 		atomic64_dec(stat);
-	#endif
+#endif
 }
 
 static inline void nvfs_stat64_add(long i, atomic64_t *stat)
 {
-        atomic64_add(i, stat);
+	atomic64_add(i, stat);
 }
 
 static inline void nvfs_stat64_sub(long i, atomic64_t *stat)
 {
-        atomic64_sub(i, stat);
+	atomic64_sub(i, stat);
 }
 
 static inline s64 nvfs_stat64_read(atomic64_t *stat)
@@ -203,22 +200,22 @@ static inline u64 nvfs_stat64_jiffies2usec(atomic64_t *stat)
 
 static inline void nvfs_stat64_ktime(ktime_t *now)
 {
-        *now = ktime_get();
+	*now = ktime_get();
 }
 
 void nvfs_update_read_throughput(unsigned long total_bytes,
 				atomic64_t *stat);
 
 void nvfs_update_read_latency(unsigned long avg_latency,
-                                atomic64_t *stat);
+				atomic64_t *stat);
 
 void nvfs_update_write_latency(unsigned long avg_latency,
-                                atomic64_t *stat);
+				atomic64_t *stat);
 
 void nvfs_update_batch_latency(unsigned long avg_latency,
-                                atomic64_t *stat);
+				atomic64_t *stat);
 void nvfs_update_write_throughput(unsigned long total_bytes,
-                                atomic64_t *stat);
+				atomic64_t *stat);
 
 struct nvfs_gpu_args;
 void nvfs_update_free_gpustat(struct nvfs_gpu_args *gpuinfo);
@@ -227,35 +224,35 @@ void nvfs_stat_init(void);
 void nvfs_stat_destroy(void);
 
 #define INITIALIZE_STATS_CONFIG(value, newvalue) \
- (value) = (newvalue)
+	((value) = (newvalue))
 
 #else
-#define nvfs_stat(stat) do {} while (0)
-#define nvfs_stat_d(stat) do {} while (0)
-#define nvfs_stat64_reset(stat) do {} while (0)
-#define nvfs_stat_reset(stat) do {} while (0)
-#define nvfs_stat64(stat) do {} while (0)
-#define nvfs_stat64_d(stat) do {} while (0)
-#define nvfs_stat64_add(x, stat) do {} while (0)
-#define nvfs_stat64_sub(x, stat) do {} while (0)
-#define nvfs_stat64_read(stat) 0LL
-#define nvfs_stat64_jiffies(stat) do {} while (0)
-#define nvfs_stat64_jiffies2usec(stat) 0
-#define nvfs_stat64_ktime(stat) do {} while (0)
-#define nvfs_update_write_throughput(x, stat) do {} while (0)
-#define nvfs_update_write_latency(x, stat) do {} while (0)
-#define nvfs_update_read_latency(x, stat) do {} while (0)
-#define nvfs_update_read_throughput(x, stat) do {} while (0)
-#define nvfs_update_free_gpustat(x) do {} while (0)
-#define nvfs_update_alloc_gpustat(x) do {} while (0)
+#define nvfs_stat(...) do {} while (0)
+#define nvfs_stat_d(...) do {} while (0)
+#define nvfs_stat64_reset(...) do {} while (0)
+#define nvfs_stat_reset(...) do {} while (0)
+#define nvfs_stat64(...) do {} while (0)
+#define nvfs_stat64_d(...) do {} while (0)
+#define nvfs_stat64_add(...) do {} while (0)
+#define nvfs_stat64_sub(...) do {} while (0)
+#define nvfs_stat64_read(...) 0LL
+#define nvfs_stat64_jiffies(...) do {} while (0)
+#define nvfs_stat64_jiffies2usec(...) 0
+#define nvfs_stat64_ktime(...) do {} while (0)
+#define nvfs_update_write_throughput(...) do {} while (0)
+#define nvfs_update_write_latency(...) do {} while (0)
+#define nvfs_update_read_latency(...) do {} while (0)
+#define nvfs_update_read_throughput(...) do {} while (0)
+#define nvfs_update_free_gpustat(...) do {} while (0)
+#define nvfs_update_alloc_gpustat(...) do {} while (0)
 #define nvfs_stat_init() do {} while (0)
 #define nvfs_stat_destroy() do {} while (0)
-#define INITIALIZE_STATS_CONFIG(value, newvalue) do {} while (0)
+#define INITIALIZE_STATS_CONFIG(...) do {} while (0)
 
-#define nvfs_update_write_throughput(x, stat) do {} while (0)
-#define nvfs_update_write_latency(x, stat) do {} while (0)
-#define nvfs_update_read_latency(x, stat)  do {} while (0)
-#define nvfs_update_read_throughput(x, stat) do {} while (0)
+#define nvfs_update_write_throughput(...) do {} while (0)
+#define nvfs_update_write_latency(...) do {} while (0)
+#define nvfs_update_read_latency(...)  do {} while (0)
+#define nvfs_update_read_throughput(...) do {} while (0)
 
 #endif /* CONFIG_NVFS_STATS */
 

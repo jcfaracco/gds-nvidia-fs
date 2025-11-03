@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
  *
@@ -36,7 +37,6 @@
 #include "config-host.h"
 
 extern struct module_entry modules_list[];
-extern struct mutex nvfs_module_mutex;
 
 static int nvfs_modules_show(struct seq_file *m, void *v)
 {
@@ -48,7 +48,7 @@ static int nvfs_modules_show(struct seq_file *m, void *v)
 		mod_entry = &modules_list[i];
 		if (mod_entry->found && mod_entry->name) {
 			seq_printf(m, "%s: %s\n", mod_entry->name,
-				mod_entry->version);
+				   mod_entry->version);
 		}
 	}
 	mutex_unlock(&nvfs_module_mutex);
@@ -60,23 +60,23 @@ static int nvfs_modules_show(struct seq_file *m, void *v)
  */
 static int nvfs_modules_open(struct inode *inode, struct file *file)
 {
-       return single_open(file, nvfs_modules_show, NULL);
+	return single_open(file, nvfs_modules_show, NULL);
 }
 #ifdef HAVE_STRUCT_PROC_OPS
 const struct proc_ops nvfs_module_ops = {
-       .proc_open    	= nvfs_modules_open,
-       .proc_read 	= seq_read,
-       .proc_lseek	= seq_lseek,
-       .proc_release	= single_release,
+	.proc_open	= nvfs_modules_open,
+	.proc_read	= seq_read,
+	.proc_lseek	= seq_lseek,
+	.proc_release	= single_release,
 };
 #else
 const struct file_operations nvfs_module_ops = {
 
-       .owner          = THIS_MODULE,
-       .open           = nvfs_modules_open,
-       .read           = seq_read,
-       .llseek         = seq_lseek,
-       .release        = single_release,
+	.owner		= THIS_MODULE,
+	.open		= nvfs_modules_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
 };
 #endif
 
@@ -84,6 +84,7 @@ const struct file_operations nvfs_module_ops = {
 static int nvfs_version_show(struct seq_file *m, void *v)
 {
 	unsigned int dvers = nvfs_driver_version();
+
 	seq_printf(m, "%s: %u.%u\n", "version",
 		nvfs_major_version(dvers), nvfs_minor_version(dvers));
 	return 0;
@@ -112,11 +113,12 @@ static const struct file_operations nvfs_version_ops = {
 	.llseek		= seq_lseek,
 	.release	= single_release,
 };
-#endif	
+#endif
 // used by library for parsing
 static int nvfs_bridge_show(struct seq_file *m, void *v)
 {
 	struct pci_dev *pdev = NULL;
+
 	while ((pdev = nvfs_get_next_acs_device(pdev)) != NULL) {
 		seq_printf(m, "%04x:%02x:%02x.%d\n",
 			pci_domain_nr(pdev->bus),
@@ -156,6 +158,7 @@ static const struct file_operations nvfs_bridge_ops = {
 static int nvfs_devices_show(struct seq_file *m, void *v)
 {
 	unsigned int ndevs = nvfs_get_device_count();
+
 	seq_printf(m, "%u\n", ndevs);
 	return 0;
 }

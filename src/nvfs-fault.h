@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MIT */
 /*
  * Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
  *
@@ -36,7 +37,7 @@ extern struct fault_attr nvfs_vm_insert_page_error;
 
 static inline bool nvfs_fault_trigger(void *fault)
 {
-        return should_fail(fault, 1);
+	return should_fail(fault, 1);
 }
 
 void nvfs_init_debugfs(void);
@@ -44,8 +45,8 @@ void nvfs_free_debugfs(void);
 
 #else
 
-#define nvfs_init_debugfs() do{} while (0)
-#define nvfs_free_debugfs() do{} while (0)
+#define nvfs_init_debugfs() do {} while (0)
+#define nvfs_free_debugfs() do {} while (0)
 
 #endif
 

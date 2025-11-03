@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
  *
@@ -87,7 +88,7 @@ const unsigned char nvfs_pcie_link_width_table[MAX_LNKWIDTH_ENTRIES] = {
 	PCIE_LNK_WIDTH_UNKNOWN, /* F */
 };
 
-// capture gpu-peer rank info
+// Capture gpu-peer rank info
 struct nvfs_rank_data {
 	u32 rank;       // rank
 	u16 cross;      // if no common ancestor
@@ -96,38 +97,40 @@ struct nvfs_rank_data {
 	uint64_t count; // counts number of p2p dma ops between the pair
 };
 
-// store pci paths
+// Store pci paths
 static uint64_t gpu_bdf_map[MAX_GPU_DEVS][MAX_PCI_DEPTH];
 
 static uint64_t peer_bdf_map[MAX_PEER_DEVS][MAX_PCI_DEPTH];
 
-// index tables
+// Index tables
 static uint64_t gpu_info_table[MAX_GPU_DEVS];
 
 static uint64_t peer_info_table[MAX_PEER_DEVS];
 
-// pci-distance matrix
+// PCI-distance matrix
 static struct nvfs_rank_data gpu_rank_matrix[MAX_GPU_DEVS][MAX_PEER_DEVS];
 
-// hash function for pci devinfo
+// Hash function for pci devinfo
 static inline u64 hashfn(u64 value)
 {
-	static u32 hash_seed = 0;
-	return jhash_2words((uint32_t)value , (uint32_t)(value >> 32), hash_seed);
+	static u32 hash_seed;
+
+	return jhash_2words((uint32_t)value, (uint32_t)(value >> 32), hash_seed);
 }
 
-// store bdf info to index table and fetch the index
+// Store bdf info to index table and fetch the index
 static inline
 unsigned int _create_index_entry(uint64_t pcidevinfo,
-                                 uint64_t index_table[],
+				 uint64_t index_table[],
 				 unsigned int max_elements)
 {
 	u32 i = 0;
 	u32 idx = hashfn(pcidevinfo) % max_elements;
+
 	while (i < max_elements) {
 		if (index_table[idx] == 0)
 			return idx;
-		idx = (idx + 1 ) % max_elements;
+		idx = (idx + 1) % max_elements;
 		i++;
 	}
 	nvfs_err("nvfs_pci: hash index full for pdevinfo :"PCI_INFO_FMT,
@@ -138,15 +141,16 @@ unsigned int _create_index_entry(uint64_t pcidevinfo,
 // fetch index given bdf info
 static inline
 unsigned int _lookup_index_entry(uint64_t pcidevinfo,
-                                 uint64_t index_table[],
-                                 unsigned int max_elements)
+				 uint64_t index_table[],
+				 unsigned int max_elements)
 {
 	u32 i = 0;
 	u32 idx = hashfn(pcidevinfo) % max_elements;
+
 	while (i < max_elements) {
 		if ((index_table[idx] & NVFS_PDEVINFO_INFO_MASK) == pcidevinfo)
 			return idx;
-		idx = (idx + 1 ) % max_elements;
+		idx = (idx + 1) % max_elements;
 		i++;
 	}
 
@@ -226,7 +230,8 @@ uint64_t nvfs_lookup_peer_hash_index_entry(unsigned int index)
  *  @params     : pci device pointer
  *  @returns    : boolean
  */
-static bool nvfs_pcie_acs_enabled(struct pci_dev *pdev) {
+static bool nvfs_pcie_acs_enabled(struct pci_dev *pdev)
+{
 	int pos;
 	u16 cap = 0, ctrl = 0;
 
@@ -243,7 +248,8 @@ static bool nvfs_pcie_acs_enabled(struct pci_dev *pdev) {
  *  @params     : pci device pointer
  *  @returns    : pci device pointer
  */
-struct pci_dev *nvfs_get_next_acs_device(struct pci_dev *pdev) {
+struct pci_dev *nvfs_get_next_acs_device(struct pci_dev *pdev)
+{
 	// reference to from is dropped internally
 	while ((pdev = pci_get_class(PCI_CLASS_BRIDGE_PCI << 8, pdev)) != NULL) {
 		if (nvfs_pcie_acs_enabled(pdev))
@@ -258,56 +264,57 @@ struct pci_dev *nvfs_get_next_acs_device(struct pci_dev *pdev) {
  *  @returns    : bandwidth
  */
 static u32 nvfs_pcie_bw_available(struct pci_dev *pdev,
-                                  enum pci_bus_speed *speed,
-                                  enum pcie_link_width *width) {
-    u32 bw;
-    int ret;
-    u16 lnksta = 0;
-    u8 lnk_speed_idx;
+				  enum pci_bus_speed *speed,
+				  enum pcie_link_width *width)
+{
+	u32 bw;
+	int ret;
+	u16 lnksta = 0;
+	u8 lnk_speed_idx;
 	enum pci_bus_speed lnk_speed;
 	enum pcie_link_width lnk_width;
 
 	ret = pcie_capability_read_word(pdev, PCI_EXP_LNKSTA, &lnksta);
 	if (ret) {
-        nvfs_err("error reading link capability register");
-	    return 0;
-    }
+		nvfs_err("error reading link capability register");
+		return 0;
+	}
 
-    lnk_width = (lnksta & PCI_EXP_LNKSTA_NLW) >> PCI_EXP_LNKSTA_NLW_SHIFT;
-    lnk_speed_idx = lnksta & PCI_EXP_LNKSTA_CLS;
-    if (lnk_speed_idx < sizeof(nvfs_pcie_link_speed_table)) {
-        lnk_speed = nvfs_pcie_link_speed_table[lnk_speed_idx];
-        bw = lnk_width * lnk_speed_idx;
-        nvfs_dbg("nvfs_pci pci device %04x:%02x:%02x:%d width:%u "
-                "speed_index:%u bw:%u", pci_domain_nr(pdev->bus),
-                 pdev->bus->number, PCI_SLOT(pdev->devfn),
-                 PCI_FUNC(pdev->devfn), lnk_width, lnk_speed_idx, bw);
-    } else {
-        bw = 0;
-        nvfs_warn("cannot determine bw, unexpected link_speed value for device"
-                 "%04x:%02x:%02x:%d\n", pci_domain_nr(pdev->bus),
-                 pdev->bus->number, PCI_SLOT(pdev->devfn), PCI_FUNC(pdev->devfn));
-    }
+	lnk_width = (lnksta & PCI_EXP_LNKSTA_NLW) >> PCI_EXP_LNKSTA_NLW_SHIFT;
+	lnk_speed_idx = lnksta & PCI_EXP_LNKSTA_CLS;
+	if (lnk_speed_idx < sizeof(nvfs_pcie_link_speed_table)) {
+		lnk_speed = nvfs_pcie_link_speed_table[lnk_speed_idx];
+		bw = lnk_width * lnk_speed_idx;
+		nvfs_dbg("nvfs_pci pci device %04x:%02x:%02x:%d width:%u speed_index:%u bw:%u",
+			 pci_domain_nr(pdev->bus),
+			 pdev->bus->number, PCI_SLOT(pdev->devfn),
+			 PCI_FUNC(pdev->devfn), lnk_width, lnk_speed_idx, bw);
+	} else {
+		bw = 0;
+		nvfs_warn("cannot determine bw, unexpected link_speed value for device %04x:%02x:%02x:%d\n",
+			  pci_domain_nr(pdev->bus), pdev->bus->number,
+			  PCI_SLOT(pdev->devfn), PCI_FUNC(pdev->devfn));
+	}
 
-    *speed = lnk_speed;
-    *width = lnk_width;
-    return bw;
+	*speed = lnk_speed;
+	*width = lnk_width;
+	return bw;
 }
 
 /*
- *  Description : given a vendor_id, store pci device path for an array of
- devices (bottom-up).
+ *  Description : given a vendor_id, store pci device path for an array of devices (bottom-up).
  *  @params    : path array
  *  @params    : max devices for whom to compute path
  *  @vendor_id : vendor id
  *  @returns   : none
  *  Notes      : This function should be invoked atmost once per vendor_type for
- *  	         storing paths during driver initialization.
- *  	         synchronization is not needed.
+ *		 storing paths during driver initialization.
+ *		 synchronization is not needed.
  */
 static void __nvfs_find_all_device_paths(uint64_t paths[][MAX_PCI_DEPTH],
-                                         int max_devices,
-                                         unsigned int class) {
+					 int max_devices,
+					 unsigned int class)
+{
 	unsigned int count = 0, bw = 0;
 	unsigned short depth;
 	struct pci_dev *pdev = NULL, *ppdev = NULL;
@@ -333,10 +340,10 @@ static void __nvfs_find_all_device_paths(uint64_t paths[][MAX_PCI_DEPTH],
 		bw = nvfs_pcie_bw_available(pdev, &lnk_speed, &lnk_width);
 		if (bw) {
 			#ifdef SIMULATE_NON_UNIFORM_LINK_SELECTION
-			if (pdevinfo == PDEVINFO(88,0,1)) {
+			if (pdevinfo == PDEVINFO(88, 0, 1)) {
 				lnk_width = 0x04;
 				nvfs_info(PCI_INFO_FMT":"PCI_INFO_FMT"\n",
-					PCI_INFO_ARGS(pdevinfo), PCI_INFO_ARGS(PDEVINFO(88,0,1)));
+					PCI_INFO_ARGS(pdevinfo), PCI_INFO_ARGS(PDEVINFO(88, 0, 1)));
 			}
 			#endif
 			nvfs_pdevinfo_set_link_width(&pdevinfo, lnk_width);
@@ -355,12 +362,12 @@ static void __nvfs_find_all_device_paths(uint64_t paths[][MAX_PCI_DEPTH],
 			nvfs_pdevinfo_set_class(&pdevinfo, class);
 			peer_info_table[idx] = pdevinfo;
 		} else {
-			#ifdef NVFS_PCI_DEBUG
-			nvfs_dbg("nvfs_pci skipping pci device entry "
-				"%04x:%02x:%02x:%d\n", pci_domain_nr(pdev->bus),
-				pdev->bus->number, PCI_SLOT(pdev->devfn),
-				PCI_FUNC(pdev->devfn));
-			#endif
+#ifdef NVFS_PCI_DEBUG
+			nvfs_dbg("nvfs_pci skipping pci device entry %04x:%02x:%02x:%d\n",
+				 pci_domain_nr(pdev->bus),
+				 pdev->bus->number, PCI_SLOT(pdev->devfn),
+				 PCI_FUNC(pdev->devfn));
+#endif
 			continue;
 		}
 
@@ -372,10 +379,10 @@ static void __nvfs_find_all_device_paths(uint64_t paths[][MAX_PCI_DEPTH],
 		// pci path bottom-up
 		depth = 0;
 		ppdev = pdev;
-		#ifdef NVFS_PCI_DEBUG
+#ifdef NVFS_PCI_DEBUG
 		if (pci_find_pcie_root_port(ppdev))
 			nvfs_dbg("endpoint path has pcie root port");
-		#endif
+#endif
 		// pcie device not hinged on root port
 		if (ppdev->bus && pci_is_root_bus(ppdev->bus)) {
 			paths[idx][depth] = PCI_NULL_DEV_NORP;
@@ -421,20 +428,21 @@ next:
 error:
 	pci_dev_put(pdev); // pci_get_class
 	nvfs_err("nvfs_pci: pci_device index table already full!\n");
-	return;
 }
 
 /*
  *  Description : function to compute numa distance given a gpu_index
- *  		  and an peer_index.
+ *		  and an peer_index.
  *  @params  : gpu_index
  *  @params  : peer_index
  *  @returns : numa distance on success or REMOTE_DISTANCE on error.
  */
 
 static unsigned int __nvfs_gpu2peer_numa_distance(unsigned int gpu_index,
-		unsigned int peer_index) {
+						  unsigned int peer_index)
+{
 	int na, nb;
+
 	na = nvfs_get_numa_node_from_pdevinfo(gpu_info_table[gpu_index]);
 	if (na < 0) {
 		nvfs_err("warning: error retrieving numa node for device "PCI_INFO_FMT,
@@ -447,14 +455,15 @@ static unsigned int __nvfs_gpu2peer_numa_distance(unsigned int gpu_index,
 			PCI_INFO_ARGS(peer_info_table[peer_index]));
 	}
 
-    // for systems which are not NUMA aware
-    if ((na < 0) && (nb < 0))
-        return LOCAL_DISTANCE;
-    // for buggy systems, where one has NUMA node set, other not
-    else if ((na < 0) || (nb < 0))
-        return REMOTE_DISTANCE;
-    else
-        return node_distance(na, nb);
+	// For systems which are not NUMA aware
+	if ((na < 0) && (nb < 0))
+		return LOCAL_DISTANCE;
+
+	// For buggy systems, where one has NUMA node set, other not
+	else if ((na < 0) || (nb < 0))
+		return REMOTE_DISTANCE;
+	else
+		return node_distance(na, nb);
 }
 
 /*
@@ -465,24 +474,25 @@ static unsigned int __nvfs_gpu2peer_numa_distance(unsigned int gpu_index,
  *  @returns : true if local or false for remote
  */
 static bool nvfs_gpu2peer_islocal(unsigned int gpu_index,
-		unsigned int peer_index) {
-	if (__nvfs_gpu2peer_numa_distance(gpu_index, peer_index) ==
-		LOCAL_DISTANCE)
+				  unsigned int peer_index)
+{
+	if (__nvfs_gpu2peer_numa_distance(gpu_index, peer_index) == LOCAL_DISTANCE)
 		return true;
-	else
-		return false;
+
+	return false;
 }
 
 /*
  *  Description : core function to compute the pci distance given a gpu_index
- *  		  and an peer_index. (an index maps to a device bdf array slot)
+ *		  and an peer_index. (an index maps to a device bdf array slot)
  *  @params  : gpu_index
  *  @params  : peer_index
  *  @returns : rank on success or UINT_MAX on error.
- *             Upper 16 bytes of result is set if the distance is cross node.
+ *	       Upper 16 bytes of result is set if the distance is cross node.
  */
 static unsigned int __nvfs_get_gpu2peer_distance(unsigned int gpu_index,
-                                                 unsigned int peer_index) {
+						 unsigned int peer_index)
+{
 	int i = 0, j = 0, i_max = 0;
 	u64 pdevinfo = 0;
 	bool common = false;
@@ -538,8 +548,7 @@ static unsigned int __nvfs_get_gpu2peer_distance(unsigned int gpu_index,
 
 	// gpu entry must exist (i >= 0)
 	if (pdevinfo == 0) {
-		nvfs_err("nvfs_pci: no path entry exists for gpu index, cannot perform "
-			"p2p pci affinity calculation");
+		nvfs_err("nvfs_pci: no path entry exists for gpu index, cannot perform p2p pci affinity calculation");
 		return UINT_MAX;
 	}
 
@@ -614,9 +623,11 @@ static unsigned int __nvfs_get_gpu2peer_distance(unsigned int gpu_index,
  *  Notes    : This function should be invoked after all device arrays for paths
  *             have been populated.
  */
-static void nvfs_get_pci_gpu2peer_distance(void) {
+static void nvfs_get_pci_gpu2peer_distance(void)
+{
 	unsigned int i, j;
 	unsigned int rank;
+
 	for (i = 0; i < MAX_GPU_DEVS; i++) {
 		for (j = 0; j < MAX_PEER_DEVS; j++) {
 			u64 peerinfo = nvfs_lookup_peer_hash_index_entry(j);
@@ -642,12 +653,13 @@ static void nvfs_get_pci_gpu2peer_distance(void) {
  *  @params  : none
  *  @returns : none
  */
-void nvfs_fill_gpu2peer_distance_table_once(void) {
+void nvfs_fill_gpu2peer_distance_table_once(void)
+{
 	pr_info("max_peer_devs : %u and max_pci_depth : %u\n", MAX_PEER_DEVS, MAX_PCI_DEPTH);
-	memset ((u8 *)gpu_bdf_map, 0, sizeof(gpu_bdf_map));
-	memset ((u8 *)peer_bdf_map, 0, sizeof(peer_bdf_map));
-	memset ((u8 *)gpu_info_table, 0, sizeof(gpu_info_table));
-	memset ((u8 *)peer_info_table, 0, sizeof(peer_info_table));
+	memset((u8 *)gpu_bdf_map, 0, sizeof(gpu_bdf_map));
+	memset((u8 *)peer_bdf_map, 0, sizeof(peer_bdf_map));
+	memset((u8 *)gpu_info_table, 0, sizeof(gpu_info_table));
+	memset((u8 *)peer_info_table, 0, sizeof(peer_info_table));
 
 	nvfs_dbg("nvfs listing GPU paths:\n");
 	__nvfs_find_all_device_paths(gpu_bdf_map, MAX_GPU_DEVS, PCI_CLASS_DISPLAY_3D << 8);
@@ -670,7 +682,8 @@ void nvfs_fill_gpu2peer_distance_table_once(void) {
  *  @params  : gpu hash index
  *  @returns : rank i.e pci-distance
  */
-unsigned int nvfs_get_gpu2peer_distance(struct device *dev, unsigned int gpu_index) {
+unsigned int nvfs_get_gpu2peer_distance(struct device *dev, unsigned int gpu_index)
+{
 	u64 peerdevinfo;
 	unsigned int peer_index, rank;
 	struct pci_dev *pdev = to_pci_dev(dev);
@@ -692,10 +705,9 @@ unsigned int nvfs_get_gpu2peer_distance(struct device *dev, unsigned int gpu_ind
 
 	rank = gpu_rank_matrix[gpu_index][peer_index].rank;
 	#ifdef NVFS_PCI_DEBUG
-	nvfs_dbg("nvfs_get_gpu2peer_distance "PCI_INFO_FMT"(%u)->"PCI_INFO_FMT
-		"(%u) rank :%u\n",
-		PCI_INFO_ARGS(gpu_info_table[gpu_index]), gpu_index,
-		PCI_INFO_ARGS(peer_info_table[peer_index]), peer_index, rank);
+	nvfs_dbg("%s: "PCI_INFO_FMT"(%u)->"PCI_INFO_FMT"(%u) rank :%u\n", __func__,
+		 PCI_INFO_ARGS(gpu_info_table[gpu_index]), gpu_index,
+		 PCI_INFO_ARGS(peer_info_table[peer_index]), peer_index, rank);
 	#endif
 	return rank;
 }
@@ -706,8 +718,10 @@ unsigned int nvfs_get_gpu2peer_distance(struct device *dev, unsigned int gpu_ind
  *  @params  : peer device bdf
  *  TBD : use atomic_inc
  */
-void nvfs_update_peer_usage(unsigned int gpu_index, u64 peer_pdevinfo) {
+void nvfs_update_peer_usage(unsigned int gpu_index, u64 peer_pdevinfo)
+{
 	unsigned int peer_index = nvfs_get_peer_hash_index(peer_pdevinfo);
+
 	if (unlikely((gpu_index >= MAX_GPU_DEVS) || (peer_index >= MAX_PEER_DEVS))) {
 		#ifdef NVFS_PCI_DEBUG
 		nvfs_warn("nvfs_pci: invalid lookup index, gpu_index=%u:peer_index=%u",
@@ -729,9 +743,11 @@ void nvfs_update_peer_usage(unsigned int gpu_index, u64 peer_pdevinfo) {
  *  @params  : distance to match
  *  @returns : count
  */
-static uint64_t nvfs_aggregate_peer_usage_by_distance(unsigned int gpu_index, unsigned int pci_dist) {
+static uint64_t nvfs_aggregate_peer_usage_by_distance(unsigned int gpu_index, unsigned int pci_dist)
+{
 	unsigned int i;
 	uint64_t count = 0;
+
 	if (unlikely(gpu_index >= MAX_GPU_DEVS)) {
 		nvfs_err("nvfs_pci: invalid lookup index %u", gpu_index);
 	} else if (unlikely(pci_dist >= BASE_PCI_DISTANCE_CROSSRP)) {
@@ -763,9 +779,11 @@ static uint64_t nvfs_aggregate_peer_usage_by_distance(unsigned int gpu_index, un
  *  @params  : gpu hash index
  *  @returns : percentage of cross traffic
  */
-unsigned int nvfs_aggregate_cross_peer_usage(unsigned int gpu_index) {
+unsigned int nvfs_aggregate_cross_peer_usage(unsigned int gpu_index)
+{
 	int i;
 	uint64_t count = 0, net = 0;
+
 	if (unlikely(gpu_index >= MAX_GPU_DEVS)) {
 		nvfs_err("nvfs_pci: invalid lookup index %u", gpu_index);
 	} else {
@@ -773,18 +791,17 @@ unsigned int nvfs_aggregate_cross_peer_usage(unsigned int gpu_index) {
 			net += gpu_rank_matrix[gpu_index][i].count;
 			if (gpu_rank_matrix[gpu_index][i].cross) {
 				count += gpu_rank_matrix[gpu_index][i].count;
-				#ifdef NVFS_PCI_DEBUG
-				nvfs_dbg("nvfs_pci: rank no %u cross peer hit "
-					"[gpu_index=%u:peer_index=%u] %llu",
-					gpu_rank_matrix[gpu_index][i].rank, gpu_index, i,
-					gpu_rank_matrix[gpu_index][i].count);
-				#endif
+#ifdef NVFS_PCI_DEBUG
+				nvfs_dbg("nvfs_pci: rank no %u cross peer hit [gpu_index=%u:peer_index=%u] %llu",
+					 gpu_rank_matrix[gpu_index][i].rank, gpu_index, i,
+					 gpu_rank_matrix[gpu_index][i].count);
+#endif
 			}
 		}
 	}
-	#ifdef NVFS_PCI_DEBUG
+#ifdef NVFS_PCI_DEBUG
 	nvfs_dbg("%s : %llu/%llu", __func__, count, net);
-	#endif
+#endif
 	return net ? (100 * count)/net : 0;
 }
 
@@ -792,7 +809,8 @@ unsigned int nvfs_aggregate_cross_peer_usage(unsigned int gpu_index) {
  *  Description: reset all IO counts between gpus and its peers
  *  @returns :
  */
-void nvfs_reset_peer_affinity_stats(void) {
+void nvfs_reset_peer_affinity_stats(void)
+{
 	unsigned int i, j;
 
 	for (i = 0; i < MAX_GPU_DEVS; i++) {
@@ -808,19 +826,23 @@ void nvfs_reset_peer_affinity_stats(void) {
  *                Changes here will therefore require to update the driver major
  *                version and also the major-version of the user-space library
  */
-int nvfs_peer_distance_show(struct seq_file *m, void *data) {
+int nvfs_peer_distance_show(struct seq_file *m, void *data)
+{
 	unsigned int i, j;
 
-	seq_printf(m, "gpu\t\tpeer\t\tpeerrank\tp2pdist\tlink\tgen\tnuma\tnp2p\tclass\n");
+	seq_puts(m, "gpu\t\tpeer\t\tpeerrank\tp2pdist\tlink\tgen\tnuma\tnp2p\tclass\n");
 	for (i = 0; i < MAX_GPU_DEVS; i++) {
 		u64 pdevinfo = nvfs_lookup_gpu_hash_index_entry(i);
+
 		if (!pdevinfo)
 			continue;
 
 		for (j = 0; j < MAX_PEER_DEVS; j++) {
 			u64 peerinfo = nvfs_lookup_peer_hash_index_entry(j);
+
 			if (!peerinfo)
 				continue;
+
 			seq_printf(m, PCI_INFO_FMT"\t"PCI_INFO_FMT"\t0x%08x\t0x%04x\t0x%02x\t0x%02x\t0x%02x\t%llu\t%s\n",
 				PCI_INFO_ARGS(pdevinfo),
 				PCI_INFO_ARGS(peerinfo),
@@ -847,17 +869,19 @@ int nvfs_peer_affinity_show(struct seq_file *m, void *v)
 	if (!nvfs_peer_stats_enabled)
 		return 0;
 
-	seq_printf(m, "GPU P2P DMA distribution based on pci-distance\n\n");
-	seq_printf(m, "(last column indicates p2p via root complex)\n");
+	seq_puts(m, "GPU P2P DMA distribution based on pci-distance\n\n");
+	seq_puts(m, "(last column indicates p2p via root complex)\n");
 	for (i = 0; i < MAX_GPU_DEVS; i++) {
 		u64 pdevinfo = nvfs_lookup_gpu_hash_index_entry(i);
+
 		if (!pdevinfo)
 			continue;
+
 		seq_printf(m, "GPU :"PCI_INFO_FMT":", PCI_INFO_ARGS(pdevinfo));
-		for (j = 1; j <= PROC_LIMIT_PCI_DISTANCE_COMMONRP; j++) {
+		for (j = 1; j <= PROC_LIMIT_PCI_DISTANCE_COMMONRP; j++)
 			seq_printf(m, "%llu ", nvfs_aggregate_peer_usage_by_distance(i, j));
-		}
-		// cross root port
+
+		// Cross root port
 		seq_printf(m, "%llu\n",
 			nvfs_aggregate_peer_usage_by_distance(i, BASE_PCI_DISTANCE_CROSSRP));
 	}

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
  *
@@ -38,37 +39,37 @@ DECLARE_FAULT_ATTR(nvfs_vm_insert_page_error);
 
 void nvfs_init_debugfs(void)
 {
-        dbgfs_root = debugfs_create_dir("nvfs_inject_fault", NULL);
+	dbgfs_root = debugfs_create_dir("nvfs_inject_fault", NULL);
 
-        if (!dbgfs_root || IS_ERR(dbgfs_root)) {
-                dbgfs_root = NULL;
-                nvfs_err("Could not initialise debugfs!\n");
-                return;
-        }
+	if (!dbgfs_root || IS_ERR(dbgfs_root)) {
+		dbgfs_root = NULL;
+		nvfs_err("Could not initialise debugfs!\n");
+		return;
+	}
 
-        fault_create_debugfs_attr("dma_error", dbgfs_root,
-                                  &nvfs_dma_error);
-        fault_create_debugfs_attr("rw_verify_area_error", dbgfs_root,
-                                  &nvfs_rw_verify_area_error);
-        fault_create_debugfs_attr("end_fence_get_user_pages_fast_error", dbgfs_root,
-                                  &nvfs_end_fence_get_user_pages_fast_error);
-        fault_create_debugfs_attr("invalid_p2p_get_page", dbgfs_root,
-                                  &nvfs_invalid_p2p_get_page);
-        fault_create_debugfs_attr("io_transit_state_fail", dbgfs_root,
-                                  &nvfs_io_transit_state_fail);
-        fault_create_debugfs_attr("pin_shadow_pages_error", dbgfs_root,
-                                  &nvfs_pin_shadow_pages_error);
-        fault_create_debugfs_attr("vm_insert_page_error", dbgfs_root,
-                                  &nvfs_vm_insert_page_error);
+	fault_create_debugfs_attr("dma_error", dbgfs_root,
+				  &nvfs_dma_error);
+	fault_create_debugfs_attr("rw_verify_area_error", dbgfs_root,
+				  &nvfs_rw_verify_area_error);
+	fault_create_debugfs_attr("end_fence_get_user_pages_fast_error", dbgfs_root,
+				  &nvfs_end_fence_get_user_pages_fast_error);
+	fault_create_debugfs_attr("invalid_p2p_get_page", dbgfs_root,
+				  &nvfs_invalid_p2p_get_page);
+	fault_create_debugfs_attr("io_transit_state_fail", dbgfs_root,
+				  &nvfs_io_transit_state_fail);
+	fault_create_debugfs_attr("pin_shadow_pages_error", dbgfs_root,
+				  &nvfs_pin_shadow_pages_error);
+	fault_create_debugfs_attr("vm_insert_page_error", dbgfs_root,
+				  &nvfs_vm_insert_page_error);
 }
 
 void nvfs_free_debugfs(void)
 {
-        if (!dbgfs_root)
-                return;
+	if (!dbgfs_root)
+		return;
 
-        debugfs_remove_recursive(dbgfs_root);
-        dbgfs_root = NULL;
+	debugfs_remove_recursive(dbgfs_root);
+	dbgfs_root = NULL;
 }
 
 #endif
