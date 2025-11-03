@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MIT */
 /*
  * Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
  *
@@ -25,15 +26,15 @@
 #include "nvfs-core.h"
 #include "nvfs-mmap.h"
 
-#define NVFS_MAX_BATCH_ENTRIES 256 
+#define NVFS_MAX_BATCH_ENTRIES 256
 
-typedef struct {
-   uint64_t ctx_id;
-   ktime_t start_io;		// Start time of IO for latency calculation
-   uint64_t nents;
-   nvfs_io_t *nvfsio[NVFS_MAX_BATCH_ENTRIES]; 
+typedef struct nvfs_batch_io {
+	uint64_t ctx_id;
+	ktime_t start_io;		/* Start time of IO for latency calculation */
+	uint64_t nents;
+	nvfs_io_t *nvfsio[NVFS_MAX_BATCH_ENTRIES];
 } nvfs_batch_io_t;
 
-nvfs_batch_io_t* nvfs_io_batch_init(nvfs_ioctl_param_union *input_param);
+nvfs_batch_io_t *nvfs_io_batch_init(nvfs_ioctl_param_union *input_param);
 long nvfs_io_batch_submit(nvfs_batch_io_t *nvfs_batch);
 #endif

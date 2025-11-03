@@ -31,15 +31,18 @@
 // template for build version
 #define NVFS_DRIVER_PATCH_VERSION  6
 
-static inline unsigned int nvfs_driver_version(void) {
+static inline unsigned int nvfs_driver_version(void)
+{
     return (NVFS_DRIVER_MAJOR_VERSION << 16) | NVFS_DRIVER_MINOR_VERSION;
 }
 
-static inline unsigned short nvfs_major_version(unsigned int version) {
+static inline unsigned short nvfs_major_version(unsigned int version)
+{
     return (version >> 16);
 }
 
-static inline unsigned short nvfs_minor_version(unsigned int version) {
+static inline unsigned short nvfs_minor_version(unsigned int version)
+{
     return (unsigned short) version;
 }
 

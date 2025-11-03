@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
  *
@@ -54,14 +55,15 @@ int nvfs_extend_sg_markers(struct scatterlist **sg)
 // This is hard coded to 4.18 kernel because of macro NVME_MAX_SEGS. See nvfs-dma.c for more
 // details.
 
-#if LINUX_VERSION_CODE <  KERNEL_VERSION(4,18,0)
+#if KERNEL_VERSION(4, 18, 0) > LINUX_VERSION_CODE
 	return -1;
 #else
 	sg_unmark_end(*sg);
-	//As the NVMe driver only memsets the sglist upto blk_rq_nr_phys_segments, there is a good change that the next sg
-	//might have some stale data and calling a sg_next instead of the below fix can cause it to return a sg pointer 
-	//that is stable(Refer to sg chaining logic in sg_next). That's why incrementing and memseting the sg pointer here 
-	//is safer choice
+	/* As the NVMe driver only memsets the sglist upto blk_rq_nr_phys_segments, there is a good change that the next sg
+	 * might have some stale data and calling a sg_next instead of the below fix can cause it to return a sg pointer
+	 * that is stable(Refer to sg chaining logic in sg_next). That's why incrementing and memseting the sg pointer here
+	 * is safer choice.
+	 */
 	*sg = *sg + 1;
 	memset(*sg, 0, sizeof(struct scatterlist));
 	sg_mark_end(*sg);

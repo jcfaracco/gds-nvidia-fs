@@ -26,7 +26,7 @@
 #define __NVFS_PCI_H_
 
 #include <linux/pci.h>
-#include <asm/pci.h>
+#include <linux/pci.h>
 
 // User space has a dependency on device class names
 #define PCI_NVME_CLASS_NAME "nvme"
@@ -101,8 +101,10 @@ extern const unsigned char nvfs_pcie_link_speed_table[MAX_LNKSPEED_ENTRIES];
 extern const unsigned char nvfs_pcie_link_width_table[MAX_LNKWIDTH_ENTRIES];
 
 // combines domain, bus, device, function to uint64_t
-static inline uint64_t nvfs_pdevinfo(struct pci_dev *pdev) {
+static inline uint64_t nvfs_pdevinfo(struct pci_dev *pdev)
+{
 	uint64_t pdevinfo = 0;
+
 	if (pdev->bus) {
 		pdevinfo |= (uint32_t)pci_domain_nr(pdev->bus);
 		pdevinfo <<= 32;
@@ -112,8 +114,10 @@ static inline uint64_t nvfs_pdevinfo(struct pci_dev *pdev) {
 	return pdevinfo;
 }
 
-static inline uint64_t nvfs_bdf2pdevinfo(int dom, int bus, int dev, int func) {
+static inline uint64_t nvfs_bdf2pdevinfo(int dom, int bus, int dev, int func)
+{
 	uint64_t pdevinfo = 0;
+
 	pdevinfo |= (uint32_t)dom;
 	pdevinfo <<= 32;
 	pdevinfo |= (bus << 8U);
@@ -122,26 +126,29 @@ static inline uint64_t nvfs_bdf2pdevinfo(int dom, int bus, int dev, int func) {
 }
 
 // embed ACS info to pdevinfo
-static inline void nvfs_pdevinfo_set_acs(uint64_t *pdevinfo) {
+static inline void nvfs_pdevinfo_set_acs(uint64_t *pdevinfo)
+{
 	*pdevinfo |= (1ULL << NVFS_PDEVINFO_ACS_CHECK_BIT);
 }
 
-static inline bool nvfs_pdevinfo_get_acs(uint64_t pdevinfo) {
+static inline bool nvfs_pdevinfo_get_acs(uint64_t pdevinfo)
+{
 	return pdevinfo & (1ULL << NVFS_PDEVINFO_ACS_CHECK_BIT);
 }
 
 // embed class info to pdevinfo
-static inline void nvfs_pdevinfo_set_class(uint64_t *pdevinfo, unsigned int dev_class) {
+static inline void nvfs_pdevinfo_set_class(uint64_t *pdevinfo, unsigned int dev_class)
+{
 	if (PCI_DEV_IB(dev_class >> 8))
 		*pdevinfo |= (1ULL << NVFS_PDEVINFO_NET_CHECK_BIT);
 	else if (PCI_DEV_NVME(dev_class))
 		*pdevinfo |= (1ULL << NVFS_PDEVINFO_NVME_CHECK_BIT);
-	else {
+	else
 		pr_err("unsupported device class :0x%x\n", dev_class);
-	}
 }
 
-static inline const char* nvfs_pdevinfo_get_class_name(uint64_t pdevinfo) {
+static inline const char *nvfs_pdevinfo_get_class_name(uint64_t pdevinfo)
+{
 	if (pdevinfo & (1ULL << NVFS_PDEVINFO_NET_CHECK_BIT))
 		return PCI_NETWORK_CLASS_NAME;
 	else if (pdevinfo & (1ULL << NVFS_PDEVINFO_NVME_CHECK_BIT))
@@ -153,53 +160,61 @@ static inline const char* nvfs_pdevinfo_get_class_name(uint64_t pdevinfo) {
 // embed device link speed to pdevinfo
 // note : from spec, link_speed cannot be greater than a nibble
 static inline void nvfs_pdevinfo_set_link_speed(uint64_t *pdevinfo,
-                                                enum pci_bus_speed link_speed) {
-    size_t i = 0;
-    size_t speed_idx = 0;
+						enum pci_bus_speed link_speed)
+{
+	size_t i = 0;
+	size_t speed_idx = 0;
 
-    for (i = 0; i < MAX_LNKWIDTH_ENTRIES; i++) {
-        if (link_speed == nvfs_pcie_link_speed_table[i]) {
-            speed_idx = i;
-            speed_idx <<= (NVFS_PDEVINFO_LNKSPEED_BIT - 1);
-            *pdevinfo |= speed_idx;
-            break;
-        }
-    }
+	for (i = 0; i < MAX_LNKWIDTH_ENTRIES; i++) {
+		if (link_speed == nvfs_pcie_link_speed_table[i]) {
+			speed_idx = i;
+			speed_idx <<= (NVFS_PDEVINFO_LNKSPEED_BIT - 1);
+			*pdevinfo |= speed_idx;
+			break;
+		}
+	}
 }
 
-static inline u32 nvfs_pdevinfo_get_link_speed(uint64_t pdevinfo) {
-    uint32_t speed = (uint32_t) pdevinfo;
-    speed >>= (NVFS_PDEVINFO_LNKSPEED_BIT - 1);
-    speed &= 0x0fU;
-    return speed;
+static inline u32 nvfs_pdevinfo_get_link_speed(uint64_t pdevinfo)
+{
+	uint32_t speed = (uint32_t) pdevinfo;
+
+	speed >>= (NVFS_PDEVINFO_LNKSPEED_BIT - 1);
+	speed &= 0x0fU;
+	return speed;
 }
 
 // embed device link width to pdevinfo
 // note: from spec, link_width can be greater than a nibble.
 // So use an index for storing attribute for link width
 static inline void nvfs_pdevinfo_set_link_width(uint64_t *pdevinfo,
-                                                enum pcie_link_width link_width) {
-    size_t i = 0;
-    uint64_t width_idx = 0;
-    for (i = 0; i < MAX_LNKWIDTH_ENTRIES; i++) {
-        if (link_width == nvfs_pcie_link_width_table[i]) {
-            width_idx = i;
-            width_idx <<= (NVFS_PDEVINFO_LNKWIDTH_BIT - 1);
-            *pdevinfo |= width_idx;
-            break;
-        }
-    }
+						enum pcie_link_width link_width)
+{
+	size_t i = 0;
+	uint64_t width_idx = 0;
+
+	for (i = 0; i < MAX_LNKWIDTH_ENTRIES; i++) {
+		if (link_width == nvfs_pcie_link_width_table[i]) {
+			width_idx = i;
+			width_idx <<= (NVFS_PDEVINFO_LNKWIDTH_BIT - 1);
+			*pdevinfo |= width_idx;
+			break;
+		}
+	}
 }
 
-static inline u32 nvfs_pdevinfo_get_link_width(uint64_t pdevinfo) {
-    uint32_t width_idx = (uint32_t) pdevinfo, width = 0;
-    width_idx >>= (NVFS_PDEVINFO_LNKWIDTH_BIT - 1);
-    width_idx &= 0x0fU;
-    width = (u32) nvfs_pcie_link_width_table[width_idx];
-    return width;
+static inline u32 nvfs_pdevinfo_get_link_width(uint64_t pdevinfo)
+{
+	uint32_t width_idx = (uint32_t) pdevinfo, width = 0;
+
+	width_idx >>= (NVFS_PDEVINFO_LNKWIDTH_BIT - 1);
+	width_idx &= 0x0fU;
+	width = (u32) nvfs_pcie_link_width_table[width_idx];
+	return width;
 }
 
-static inline struct pci_dev *nvfs_get_pdev_from_pdevinfo(uint64_t pdevinfo) {
+static inline struct pci_dev *nvfs_get_pdev_from_pdevinfo(uint64_t pdevinfo)
+{
 	int domain, bus, devfn;
 
 	pdevinfo &= NVFS_PDEVINFO_INFO_MASK;
@@ -210,9 +225,11 @@ static inline struct pci_dev *nvfs_get_pdev_from_pdevinfo(uint64_t pdevinfo) {
 }
 
 // get numa node associated with a pci device
-static inline int nvfs_get_numa_node_from_pdevinfo(uint64_t pdevinfo) {
+static inline int nvfs_get_numa_node_from_pdevinfo(uint64_t pdevinfo)
+{
 	int node = -1;
 	struct pci_dev *pdev;
+
 	pdev = nvfs_get_pdev_from_pdevinfo(pdevinfo);
 	if (pdev) {
 		node = pcibus_to_node(pdev->bus);

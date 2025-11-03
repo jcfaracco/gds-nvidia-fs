@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
  *
@@ -29,19 +30,22 @@
 #include "config-host.h"
 
 #ifdef HAVE_MODULE_MUTEX
-//exported symbol by kernel module.c
+// Exported symbol by kernel module.c
 extern struct mutex module_mutex;
 #endif
-// module entries2
+
+// Module entries2
 extern struct module_entry modules_list[];
 
-int probe_module_list(void) {
+int probe_module_list(void)
+{
 	int i, ret = 0;
 	struct module_entry *mod_entry;
+
 	for (i = 0; i < nr_modules(); i++) {
 		mod_entry = &modules_list[i];
 
-                //skip pseudo module dependencies
+		// Skip pseudo module dependencies
 		if (!mod_entry->reg_ksym || !mod_entry->dreg_ksym)
 			continue;
 
@@ -106,18 +110,19 @@ int probe_module_list(void) {
 	return ret;
 }
 
-void cleanup_module_list(void) {
+void cleanup_module_list(void)
+{
 	int i = 0;
 	struct module_entry *mod_entry;
 
 	for (i = 0; i < nr_modules(); i++) {
 		mod_entry = &modules_list[i];
 
-                //skip pseudo module dependencies
+		// Skip pseudo module dependencies
 		if (!mod_entry->reg_ksym || !mod_entry->dreg_ksym)
 			continue;
 
-		// if we obtain owning module info, we must have a ref to the symbol
+		// If we obtain owning module info, we must have a ref to the symbol
 		if (mod_entry->found) {
 			pr_debug("de-registering :%s\n", mod_entry->dreg_ksym);
 
