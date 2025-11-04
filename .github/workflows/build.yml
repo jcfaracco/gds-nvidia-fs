@@ -1,0 +1,65 @@
+name: Build nvidia-fs Module
+
+on:
+  push:
+    branches: [ upstream ]
+  pull_request:
+    branches: [ upstream ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ubuntu:latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Runner information
+      run: |
+        uname -r
+        cat /etc/lsb-release
+      
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          build-essential \
+          linux-headers-generic \
+          linux-headers-$(uname -r) \
+          software-properties-common \
+          file \
+          make \
+          gcc \
+          kmod \
+          wget
+          
+    - name: Install NVIDIA drivers
+      run: |
+        # Create NVIDIA metadata
+        add-apt-repository ppa:graphics-drivers/ppa
+        apt update
+
+        # Get latest
+        LATEST=$(apt-cache search nvidia-kernel-source | cut -d'-' -f4 | sort | uniq | tail -1 | tr -d ' ')
+        apt install -y nvidia-kernel-source-$LATEST linux-modules-nvidia-$LATEST-$(uname -r)
+        
+    - name: Build kernel module
+      run: |
+        cd src
+        export CONFIG_MOFED_VERSION=5.4-1.0.3.0
+        export GDS_VERSION=$(cat GDS_VERSION)
+        make clean
+        make module
+        
+    - name: Verify build artifacts
+      run: |
+        ls -la src/nvidia-fs.ko
+        file src/nvidia-fs.ko
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nvidia-fs-module
+        path: src/nvidia-fs.ko
+        retention-days: 30
