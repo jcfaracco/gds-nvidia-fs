@@ -1,0 +1,70 @@
+name: Build nvidia-fs Module
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ubuntu:latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          build-essential \
+          linux-headers-generic \
+          linux-headers-$(uname -r) \
+          make \
+          gcc \
+          kmod \
+          wget
+          
+    - name: Install NVIDIA driver headers (mock)
+      run: |
+        # Create mock NVIDIA driver directory structure for compilation
+        mkdir -p /usr/src/nvidia-515.65.01
+        # Create a minimal nv-p2p.h header file for compilation
+        cat > /usr/src/nvidia-515.65.01/nv-p2p.h << "HEADER_EOF"
+        #ifndef NV_P2P_H
+        #define NV_P2P_H
+        
+        /* Mock NVIDIA P2P header for CI builds */
+        #include <linux/types.h>
+        
+        typedef struct nvidia_p2p_page_table nvidia_p2p_page_table_t;
+        typedef struct nvidia_p2p_dma_mapping nvidia_p2p_dma_mapping_t;
+        
+        #define NVIDIA_P2P_PAGE_SIZE_4KB   0
+        #define NVIDIA_P2P_PAGE_SIZE_64KB  1
+        #define NVIDIA_P2P_PAGE_SIZE_128KB 2
+        
+        #endif /* NV_P2P_H */
+        HEADER_EOF
+        
+    - name: Build kernel module
+      run: |
+        cd src
+        export CONFIG_MOFED_VERSION=5.4-1.0.3.0
+        export GDS_VERSION=$(cat GDS_VERSION)
+        make clean
+        make module
+        
+    - name: Verify build artifacts
+      run: |
+        ls -la src/nvidia-fs.ko
+        file src/nvidia-fs.ko
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nvidia-fs-module
+        path: src/nvidia-fs.ko
+        retention-days: 30
