@@ -30,6 +30,7 @@
 #include <linux/types.h>
 #include <linux/file.h>
 #include <linux/fs.h>
+#include <linux/compiler.h>
 #include "nvfs-mmap.h"
 #include "config-host.h"
 
@@ -199,9 +200,9 @@ struct nvfs_io_sparse_data {
 typedef struct nvfs_io_sparse_data *nvfs_io_sparse_dptr_t;
 
 struct nvfs_ioctl_metapage {
-	volatile u64 end_fence_val;
-	volatile u64 result;
-	volatile enum nvfs_metastate state;
+	u64 end_fence_val;
+	u64 result;
+	enum nvfs_metastate state;
 	struct nvfs_io_sparse_data sparse_data;
 };
 typedef struct nvfs_ioctl_metapage *nvfs_ioctl_metapage_ptr_t;
