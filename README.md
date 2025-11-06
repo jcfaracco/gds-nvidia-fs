@@ -1,34 +1,130 @@
-# nvidia-fs 
+# NVIDIA GPUDirect Storage Kernel Module
 
-GPUDirect Storage kernel driver to read/write data from supported storage using cufile APIs
+[![Build](https://github.com/jcfaracco/gds-nouveau-fs/actions/workflows/build.yml/badge.svg)](https://github.com/jcfaracco/gds-nouveau-fs/actions/workflows/build.yml)
+[![License](https://img.shields.io/badge/License-MIT%2BGPL--2.0-blue.svg)](LICENSE)
 
-## Overview 
+A Linux kernel module that enables direct I/O between GPU memory and storage devices, bypassing CPU memory copies for maximum performance. This is the upstream-aligned version designed for integration with nouveau and open-source GPU drivers.
 
-GPUDirect Storage kernel driver nvidia-fs.ko is a kernel module to orchestrate IO directly from DMA/RDMA capable storage to user allocated GPU memory on NVIDIA Graphics cards.
+## 🚀 Features
 
-Currently the driver supports following storage solutions.
+- **Zero-copy I/O**: Direct data transfer between storage and GPU memory
+- **High Performance**: Eliminates CPU bottlenecks for GPU workloads
+- **Broad Storage Support**: Works with NVMe, NVMeOF, distributed filesystems
+- **RDMA Ready**: Supports RDMA-capable storage solutions
 
-- XFS and EXT4 filesystem in ordered mode on NVMe/NVMeOF/ScaleFlux CSD devices.
-- NFS over RDMA with MOFED 5.1 and above 
-- RDMA capable distributed filesystems like DDN Exascaler, WekaFS, and VAST.
-- ScaleFlux Computational storage
+### Supported Storage Solutions
 
-For more details on using GPUDirect Storage please visit https://docs.nvidia.com/gpudirect-storage/index.html
-GDS documents and online resources provide additional context for the optimal use of and understanding of GPUDirect Storage.
+- ✅ XFS and EXT4 filesystems (ordered mode) on NVMe/NVMeOF/ScaleFlux CSD
+- ✅ NFS over RDMA with MOFED 5.1+
+- ✅ RDMA-capable distributed filesystems (DDN Exascaler, WekaFS, VAST)
+- ✅ ScaleFlux Computational Storage
 
-## Requirements
- - NVIDIA Tesla or Quadro class GPUs based on Pascal, Volta, Turing or Ampere
- - NVMe/NVMeOF storage devices or supported distributed filesystem
- - Linux kernel between 4.15.0.x and above 
- - MOFED 5.1 or above
- - cuda toolkit 10.0 and above
- - GPU display driver >= 418.40
+## 📋 Requirements
 
-## Build and installation
+### Hardware
+- NVIDIA Tesla or Quadro GPUs (Pascal, Volta, Turing, or Ampere architecture)
+- NVMe/NVMeOF storage devices or supported distributed filesystem
 
-```shell
- $ cd src
- $ export CONFIG_MOFED_VERSION=$(ofed_info -s | cut -d '-' -f 2)
- $ sudo make
- $ sudo insmod nvidia-fs.ko
+### Software
+- Linux kernel 4.15.0+ 
+- CUDA Toolkit 10.0+
+- GPU display driver ≥ 418.40
+- MOFED 5.1+ (for RDMA functionality)
+
+## 🛠️ Installation
+
+### Quick Start
+
+```bash
+cd src
+export CONFIG_MOFED_VERSION=$(ofed_info -s | cut -d '-' -f 2)
+sudo make
+sudo insmod nvidia-fs.ko
 ```
+
+### Development Build
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd kmt/src
+
+# Configure environment
+export CONFIG_MOFED_VERSION=5.4-1.0.3.0  # or your MOFED version
+export GDS_VERSION=$(cat GDS_VERSION)
+
+# Build
+make clean
+make module
+
+# Install
+sudo insmod nvidia-fs.ko
+```
+
+### Verification
+
+```bash
+# Check if module is loaded
+lsmod | grep nvidia_fs
+
+# Check module info
+modinfo nvidia-fs.ko
+```
+
+## 📚 Documentation
+
+For comprehensive usage documentation, visit the [NVIDIA GPUDirect Storage Documentation](https://docs.nvidia.com/gpudirect-storage/index.html).
+
+## 🔧 Development
+
+### Building
+
+The module uses a standard Linux kernel module build system:
+
+```bash
+make clean    # Clean build artifacts
+make module   # Build the kernel module
+make install  # Install the module (requires root)
+```
+
+### Testing
+
+```bash
+# Load the module with debug enabled
+sudo insmod nvidia-fs.ko debug=1
+
+# Check kernel logs
+dmesg | tail -n 20
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Quick Contribution Guide
+
+1. 🐛 **File an issue** for bugs or feature requests
+2. 🔀 **Fork and create** a feature branch
+3. ✨ **Follow** conventional commit messages
+4. 📝 **Sign your commits** with `git commit -s`
+5. 🔍 **Submit** a pull request
+
+## 📄 License
+
+This project is licensed under GPL v2.0 for kernel module components
+
+See [LICENSE](LICENSE) for full details.
+
+## 🔗 Links
+
+- [NVIDIA GPUDirect Storage Documentation](https://docs.nvidia.com/gpudirect-storage/index.html)
+- [CUDA Toolkit Downloads](https://developer.nvidia.com/cuda-downloads)
+- [Mellanox OFED Downloads](https://www.mellanox.com/products/infiniband-drivers/linux/mlnx_ofed)
+
+## ⚠️ Disclaimer
+
+This is an upstream-aligned development version intended for integration with open-source GPU drivers. For production deployments, consider the official NVIDIA GPUDirect Storage release.
+
+---
+
+**Note**: This project follows [Semantic Versioning](https://semver.org/) and uses [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
