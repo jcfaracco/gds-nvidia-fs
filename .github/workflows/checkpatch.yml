@@ -1,0 +1,110 @@
+name: Checkpatch Code Style Validation
+
+on:
+  push:
+    branches: [upstream]
+  pull_request:
+    branches: [upstream]
+
+jobs:
+  checkpatch:
+    runs-on: ubuntu-latest
+    name: Code Style Check
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Download checkpatch.pl
+      run: |
+        wget -O checkpatch.pl https://raw.githubusercontent.com/torvalds/linux/master/scripts/checkpatch.pl
+        chmod +x checkpatch.pl
+        wget -O const_structs.checkpatch https://raw.githubusercontent.com/torvalds/linux/master/scripts/const_structs.checkpatch
+        wget -O spelling.txt https://raw.githubusercontent.com/torvalds/linux/master/scripts/spelling.txt
+    
+    - name: Get changed files
+      id: changed-files
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          CHANGED_FILES=$(git diff --name-only --diff-filter=AM ${BASE_SHA}..${HEAD_SHA} | grep -E '\.(c|h)$' || true)
+        else
+          CHANGED_FILES=$(git diff --name-only --diff-filter=AM HEAD~1..HEAD | grep -E '\.(c|h)$' || true)
+        fi
+        
+        echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+    
+    - name: Run checkpatch on changed files
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          CHANGED_FILES="${{ steps.changed-files.outputs.changed_files }}"
+        else
+          CHANGED_FILES=$(find src/ -name *.c -o -name *.h -maxdepth 1)
+        fi
+        
+        if [ -z "$CHANGED_FILES" ]; then
+          echo "No C/C++ files changed in this commit/PR"
+          exit 0
+        fi
+        
+        echo "Running checkpatch on changed files:"
+        echo "$CHANGED_FILES"
+        echo ""
+        
+        HAS_FAILURES=0
+        
+        for file in $CHANGED_FILES; do
+          if [ -f "$file" ]; then
+            echo "=== Checking $file ==="
+            
+            if ! ./checkpatch.pl --no-tree --file "$file" --ignore LONG_LINE,LONG_LINE_COMMENT,LONG_LINE_STRING,PRINTK_WITHOUT_KERN_LEVEL,NEW_TYPEDEFS; then
+              HAS_FAILURES=1
+            fi
+            
+            echo ""
+          fi
+        done
+        
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          echo "=== Running patch-based checks ==="
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          
+          COMMITS=$(git rev-list ${BASE_SHA}..${HEAD_SHA})
+          
+          for commit in $COMMITS; do
+            echo "--- Checking commit $commit ---"
+            git format-patch -1 --stdout $commit > /tmp/patch_$commit.patch
+            
+            if ! ./checkpatch.pl --no-tree --patch /tmp/patch_$commit.patch --ignore LONG_LINE,LONG_LINE_COMMENT,LONG_LINE_STRING; then
+              HAS_FAILURES=1
+            fi
+            
+            rm -f /tmp/patch_$commit.patch
+            echo ""
+          done
+        fi
+        
+        if [ $HAS_FAILURES -eq 1 ]; then
+          echo "Checkpatch found style violations"
+          exit 1
+        else
+          echo "All checks passed"
+        fi
+    
+    - name: Comment on PR (if checkpatch fails)
+      if: failure() && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: 'Checkpatch validation failed. Please review the workflow logs and fix any style violations before merging.'
+          })
