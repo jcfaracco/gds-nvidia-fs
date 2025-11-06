@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: MIT */
+/* SPDX-License-Identifier: GPL-2.0 */
 /* Stats for NVFS
  *
  * Copyright (C) 2021 Nvidia, Corp. All Rights Reserved.
