@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: MIT */
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
  *
