@@ -789,8 +789,72 @@ void nvfs_mgroup_init(void)
 	hash_init(nvfs_io_mgroup_hash);
 }
 
+static int nvfs_handle_sparse_read_region(struct nvfs_io *nvfsio, nvfs_mgroup_ptr_t nvfs_mgroup,
+					   nvfs_io_sparse_dptr_t *sparse_ptr, int i, int *nholes, int *last_sparse_index)
+{
+	if (*sparse_ptr == false) {
+		BUG_ON(nvfsio->check_sparse == true);
+		nvfsio->check_sparse = true;
+		*sparse_ptr = nvfs_io_map_sparse_data(nvfs_mgroup);
+	}
+
+	if (*last_sparse_index < 0 || (*last_sparse_index + 1) != i) {
+		if (*nholes + 1 >= NVFS_MAX_HOLE_REGIONS) {
+			int sparse_read_bytes_limit = (i - nvfsio->nvfs_active_blocks_start) * NVFS_BLOCK_SIZE;
+			*last_sparse_index = i;
+			nvfs_info("detected max hole region count: %u", *nholes);
+			nvfs_info("sparse read current BLOCK index: %u, read_bytes: %d", i,
+				  sparse_read_bytes_limit);
+			return sparse_read_bytes_limit;
+		}
+		(*nholes)++;
+		BUG_ON(*nholes >= NVFS_MAX_HOLE_REGIONS);
+		(*sparse_ptr)->hole[*nholes].start = i - nvfsio->nvfs_active_blocks_start;
+		(*sparse_ptr)->hole[*nholes].npages = 1;
+		*last_sparse_index = i;
+	} else {
+		(*sparse_ptr)->hole[*nholes].npages++;
+		*last_sparse_index = i;
+	}
+
+	return 0;
+}
+
+static int nvfs_handle_done_block_validation(struct nvfs_io *nvfsio, nvfs_mgroup_ptr_t nvfs_mgroup,
+					      struct nvfs_io_metadata *nvfs_mpages, int i, int last_done_block,
+					      nvfs_io_sparse_dptr_t *sparse_ptr, int *nholes, int *last_sparse_index,
+					      int sparse_read_bytes_limit, bool validate)
+{
+	int ret = 0;
+
+	if (validate && nvfs_mpages[i].nvfs_state != NVFS_IO_DMA_START) {
+		if (i > last_done_block) {
+			if (validate && nvfs_mpages[i].nvfs_state != NVFS_IO_QUEUED) {
+				ret = -EIO;
+				WARN_ON_ONCE(1);
+			}
+		} else {
+			if (nvfsio->op == READ) {
+				if (sparse_read_bytes_limit) {
+					*last_sparse_index = i;
+				} else {
+					int result = nvfs_handle_sparse_read_region(nvfsio, nvfs_mgroup,
+										    sparse_ptr, i, nholes, last_sparse_index);
+					if (result > 0)
+						return result;
+				}
+			} else {
+				nvfs_dbg("WRITE: block index: %d, expected NVFS_IO_DMA_START, current state: %x\n",
+					 i, nvfs_mpages[i].nvfs_state);
+				ret = -EIO;
+			}
+		}
+	}
+	return ret;
+}
+
 void nvfs_mgroup_check_and_set(nvfs_mgroup_ptr_t nvfs_mgroup, enum nvfs_block_state state, bool validate,
-	bool update_nvfsio)
+			       bool update_nvfsio)
 {
 	struct nvfs_io_metadata  *nvfs_mpages = nvfs_mgroup->nvfs_metadata;
 	nvfs_io_sparse_dptr_t sparse_ptr = NULL;
@@ -833,81 +897,50 @@ void nvfs_mgroup_check_and_set(nvfs_mgroup_ptr_t nvfs_mgroup, enum nvfs_block_st
 	}
 	/* check that every block has seen the dma mapping call on success */
 	for (i = cur_block_num; i <= last_block_num; i++) {
-		if (state == NVFS_IO_FREE) {
+		switch (state) {
+		case NVFS_IO_FREE:
 			WARN_ON_ONCE(validate && nvfs_mpages[i].nvfs_state != NVFS_IO_INIT
 					 && nvfs_mpages[i].nvfs_state != NVFS_IO_ALLOC
 					 && nvfs_mpages[i].nvfs_state != NVFS_IO_DONE);
-		} else if (state == NVFS_IO_ALLOC) {
+			break;
+		case NVFS_IO_ALLOC:
 			WARN_ON_ONCE(validate && nvfs_mpages[i].nvfs_state != NVFS_IO_FREE);
-		} else if (state == NVFS_IO_INIT) {
+			break;
+		case NVFS_IO_INIT:
 			WARN_ON_ONCE(validate && nvfs_mpages[i].nvfs_state != NVFS_IO_ALLOC);
-		} else if (state == NVFS_IO_QUEUED) {
+			break;
+		case NVFS_IO_QUEUED:
 			WARN_ON_ONCE(validate && nvfs_mpages[i].nvfs_state != NVFS_IO_INIT
 				    && nvfs_mpages[i].nvfs_state != NVFS_IO_DONE);
-		} else if (state == NVFS_IO_DMA_START || state == NVFS_IO_DMA_ERROR) {
+			break;
+		case NVFS_IO_DMA_START:
+		case NVFS_IO_DMA_ERROR:
 			WARN_ON_ONCE(validate && nvfs_mpages[i].nvfs_state != NVFS_IO_QUEUED
 				     && nvfs_mpages[i].nvfs_state != NVFS_IO_DMA_START);
-		} else if (state == NVFS_IO_DONE
-			  && i >= nvfsio->nvfs_active_blocks_start && i <= nvfsio->nvfs_active_blocks_end) {
-			if (validate && nvfs_mpages[i].nvfs_state != NVFS_IO_DMA_START) {
-				// This block was not issued to block layer as the file ended
-				if (i > last_done_block) {
-					if (validate && nvfs_mpages[i].nvfs_state != NVFS_IO_QUEUED) {
-						ret = -EIO;
-						WARN_ON_ONCE(1);
-					}
-				// This block was not issued to block layer and the file is not sparse, BUG
-				} else {
-					if (nvfsio->op == READ) {
-						// handle fallocate case with unwritten extents
-						if (sparse_ptr == false) {
-							BUG_ON(nvfsio->check_sparse == true);
-							nvfsio->check_sparse = true;
-							sparse_ptr = nvfs_io_map_sparse_data(nvfs_mgroup);
-						}
-						// holes
-						if (last_sparse_index < 0 || (last_sparse_index + 1) != i) {
-							if (sparse_read_bytes_limit) {
-								last_sparse_index = i;
-							// we stop further hole processing, and record the current block index for
-							// mimicking a partial read to nvfs_io_complete
-							} else if (nholes + 1 >= NVFS_MAX_HOLE_REGIONS) {
-								sparse_read_bytes_limit = (i - nvfsio->nvfs_active_blocks_start) * NVFS_BLOCK_SIZE;
-								last_sparse_index = i;
-								nvfs_info("detected max hole region count: %u", nholes);
-								nvfs_info("sparse read current BLOCK index: %u, read_bytes: %d", i,
-									  sparse_read_bytes_limit);
-							} else {
-							// start a new sparse region
-								nholes++;
-								BUG_ON(nholes >= NVFS_MAX_HOLE_REGIONS);
-								sparse_ptr->hole[nholes].start = i - nvfsio->nvfs_active_blocks_start;
-								sparse_ptr->hole[nholes].npages = 1;
-								last_sparse_index = i;
-							}
-						} else {
-							sparse_ptr->hole[nholes].npages++;
-							last_sparse_index = i;
-						}
-					} else {
-						//WARN_ON(validate && nvfs_mpages[i].nvfs_state != NVFS_IO_DMA_START);
-						nvfs_dbg("WRITE: block index: %d, expected NVFS_IO_DMA_START, current state: %x\n",
-							 i, nvfs_mpages[i].nvfs_state);
-						ret = -EIO;
-					}
+			break;
+		case NVFS_IO_DONE:
+			if (i >= nvfsio->nvfs_active_blocks_start && i <= nvfsio->nvfs_active_blocks_end) {
+				int result = nvfs_handle_done_block_validation(nvfsio, nvfs_mgroup, nvfs_mpages,
+									       i, last_done_block, &sparse_ptr,
+									       &nholes, &last_sparse_index,
+									       sparse_read_bytes_limit, validate);
+				if (result > 0)
+					sparse_read_bytes_limit = result;
+				else if (result < 0)
+					ret = result;
+			} else if (i > nvfsio->nvfs_active_blocks_end || i < nvfsio->nvfs_active_blocks_start) {
+				if (validate && nvfs_mpages[i].nvfs_state != NVFS_IO_INIT) {
+					// We shouldn't be seeing a page which are out of bounds
+					BUG_ON(1);
 				}
+				// don't update the state to DONE.
+				continue;
 			}
-		} else if (state == NVFS_IO_DONE &&
-				(i > nvfsio->nvfs_active_blocks_end || i < nvfsio->nvfs_active_blocks_start)) {
-			if (validate && nvfs_mpages[i].nvfs_state != NVFS_IO_INIT) {
-				// We shouldn't be seeing a page which are out of bounds
-				BUG_ON(1);
-			}
-			// don't update the state to DONE.
-			continue;
-		} else {
+			break;
+		default:
 			WARN_ON_ONCE(1);
 			ret = -EIO;
+			break;
 		}
 
 		// Do not transition an active block to IO_DONE state,
