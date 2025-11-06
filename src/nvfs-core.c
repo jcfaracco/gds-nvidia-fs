@@ -1551,6 +1551,8 @@ static int nvfs_map(nvfs_ioctl_map_t *input_param)
 
 	nvfs_dbg("1\n");
 
+	nvfs_dbg("2\n");
+
 	return 0;
 
 error:
