@@ -97,6 +97,8 @@ sudo insmod nvidia-fs.ko debug=1
 dmesg | tail -n 20
 ```
 
+The project includes a comprehensive self-test suite with automated test execution, stress testing, and detailed validation of core functionality. For complete testing documentation, available test suites, and usage instructions, see [tests README.md](src/tests/README.md).
+
 ## 🤝 Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
