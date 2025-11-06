@@ -51,6 +51,22 @@
 	} \
 } while (0)
 
+#define NVFS_TEST_ASSERT_GE(actual, expected, msg) do { \
+	if ((actual) < (expected)) { \
+		pr_err("NVFS_TEST_FAIL: %s - expected >= %ld, got %ld at %s:%d\n", \
+		       msg, (long)(expected), (long)(actual), __FILE__, __LINE__); \
+		return NVFS_TEST_FAIL; \
+	} \
+} while (0)
+
+#define NVFS_TEST_ASSERT_GT(actual, expected, msg) do { \
+	if ((actual) <= (expected)) { \
+		pr_err("NVFS_TEST_FAIL: %s - expected > %ld, got %ld at %s:%d\n", \
+		       msg, (long)(expected), (long)(actual), __FILE__, __LINE__); \
+		return NVFS_TEST_FAIL; \
+	} \
+} while (0)
+
 /* Test function signature */
 typedef int (*nvfs_test_func_t)(void);
 
@@ -81,6 +97,8 @@ struct nvfs_test_stats {
 };
 
 /* Test framework functions */
+int nvfs_test_init(void);
+void nvfs_test_exit(void);
 int nvfs_run_test_suite(struct nvfs_test_suite *suite);
 int nvfs_run_all_tests(void);
 void nvfs_test_print_results(struct nvfs_test_stats *stats);
@@ -91,6 +109,9 @@ void nvfs_test_print_results(struct nvfs_test_stats *stats);
 
 #define NVFS_TEST_CASE(test_name, desc) \
 	{ .name = #test_name, .test_func = test_##test_name, .description = desc }
+
+#define NVFS_TEST_CASE_END \
+	{ .name = NULL, .test_func = NULL, .description = NULL }
 
 /* Mock/stub framework for testing */
 struct nvfs_test_mock {

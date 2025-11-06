@@ -51,16 +51,19 @@ NVFS_TEST_DECLARE(memory_advanced_stub)
 static struct nvfs_test_case nvfs_mmap_tests[] = {
 	NVFS_TEST_CASE(mmap_basic_stub, "Basic MMAP functionality (stub)"),
 	NVFS_TEST_CASE(mmap_advanced_stub, "Advanced MMAP functionality (stub)"),
+	NVFS_TEST_CASE_END
 };
 
 static struct nvfs_test_case nvfs_dma_tests[] = {
 	NVFS_TEST_CASE(dma_basic_stub, "Basic DMA functionality (stub)"),
 	NVFS_TEST_CASE(dma_transfer_stub, "DMA transfer functionality (stub)"),
+	NVFS_TEST_CASE_END
 };
 
 static struct nvfs_test_case nvfs_memory_tests[] = {
 	NVFS_TEST_CASE(memory_basic_stub, "Basic memory management (stub)"),
 	NVFS_TEST_CASE(memory_advanced_stub, "Advanced memory management (stub)"),
+	NVFS_TEST_CASE_END
 };
 
 /* Test suite setup/teardown stubs */
@@ -99,3 +102,6 @@ struct nvfs_test_suite nvfs_memory_test_suite = {
 	.setup = nvfs_stub_setup,
 	.teardown = nvfs_stub_teardown,
 };
+
+MODULE_LICENSE("GPL v2");
+MODULE_DESCRIPTION("NVFS Stub Tests for Missing Implementation");
