@@ -38,10 +38,6 @@
 // Note: please do not change this
 #define PCI_INFO_FMT  "%04x:%02x:%02x.%u "
 
-#define PCI_INFO_ARGS(pci_info) \
-	(uint32_t)((uint64_t)(pci_info) >> 32), \
-	((uint16_t)(pci_info) >> 8), PCI_SLOT((uint8_t)(pci_info)), PCI_FUNC((uint8_t)(pci_info))
-
 #if defined(NVFS_MAX_PEER_DEVS) && defined(NVFS_MAX_PCI_DEPTH)
        #define MAX_PEER_DEVS   NVFS_MAX_PEER_DEVS
        #define MAX_PCI_DEPTH   NVFS_MAX_PCI_DEPTH
@@ -63,6 +59,16 @@
 
 // device classes probed by nvidia-fs for generating pci-distance matrix
 #define PCI_CLASS_NETWORK_INFINIBAND 0x207
+
+/*
+ * Helper macros for PCI info argument expansion
+ * These extract individual fields from packed pci_info for printf formatting
+ * Helper macros for PCI info field extraction
+ */
+#define PCI_INFO_DOMAIN(pci_info)	((uint32_t)((uint64_t)(pci_info) >> 32))
+#define PCI_INFO_BUS(pci_info)		((uint16_t)((pci_info) >> 8))
+#define PCI_INFO_SLOT(pci_info)		(PCI_SLOT((uint8_t)(pci_info)))
+#define PCI_INFO_FUNC(pci_info)		(PCI_FUNC((uint8_t)(pci_info)))
 
 #define PCI_DEV_GPU(class, vendor) \
 	(((vendor) == PCI_VENDOR_ID_NVIDIA) && \
@@ -219,8 +225,8 @@ static inline struct pci_dev *nvfs_get_pdev_from_pdevinfo(uint64_t pdevinfo)
 	int domain, bus, devfn;
 
 	pdevinfo &= NVFS_PDEVINFO_INFO_MASK;
-	domain = (int)((uint64_t)(pdevinfo) >> 32);
-	bus    = (int)((uint32_t)(pdevinfo) >> 8);
+	domain = PCI_INFO_DOMAIN(pdevinfo);
+	bus    = PCI_INFO_BUS(pdevinfo);
 	devfn  = (int)((uint8_t) (pdevinfo) & 0xFF);
 	return pci_get_domain_bus_and_slot(domain, bus, devfn);
 }

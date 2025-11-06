@@ -134,7 +134,8 @@ unsigned int _create_index_entry(uint64_t pcidevinfo,
 		i++;
 	}
 	nvfs_err("nvfs_pci: hash index full for pdevinfo :"PCI_INFO_FMT,
-			PCI_INFO_ARGS(pcidevinfo));
+		 PCI_INFO_DOMAIN(pcidevinfo), PCI_INFO_BUS(pcidevinfo),
+		 PCI_INFO_SLOT(pcidevinfo), PCI_INFO_FUNC(pcidevinfo));
 	return UINT_MAX;
 }
 
@@ -155,7 +156,8 @@ unsigned int _lookup_index_entry(uint64_t pcidevinfo,
 	}
 
 	nvfs_err("nvfs_pci: no hash entry for pdevinfo:"PCI_INFO_FMT,
-			PCI_INFO_ARGS(pcidevinfo));
+		 PCI_INFO_DOMAIN(pcidevinfo), PCI_INFO_BUS(pcidevinfo),
+		 PCI_INFO_SLOT(pcidevinfo), PCI_INFO_FUNC(pcidevinfo));
 	return UINT_MAX;
 }
 
@@ -339,13 +341,16 @@ static void __nvfs_find_all_device_paths(uint64_t paths[][MAX_PCI_DEPTH],
 		// store speed related attributes for the leaf device
 		bw = nvfs_pcie_bw_available(pdev, &lnk_speed, &lnk_width);
 		if (bw) {
-			#ifdef SIMULATE_NON_UNIFORM_LINK_SELECTION
+#ifdef SIMULATE_NON_UNIFORM_LINK_SELECTION
 			if (pdevinfo == PDEVINFO(88, 0, 1)) {
 				lnk_width = 0x04;
 				nvfs_info(PCI_INFO_FMT":"PCI_INFO_FMT"\n",
-					PCI_INFO_ARGS(pdevinfo), PCI_INFO_ARGS(PDEVINFO(88, 0, 1)));
+					  PCI_INFO_DOMAIN(pdevinfo), PCI_INFO_BUS(pdevinfo),
+					  PCI_INFO_SLOT(pdevinfo), PCI_INFO_FUNC(pdevinfo),
+					  PCI_INFO_DOMAIN(PDEVINFO(88, 0, 1)), PCI_INFO_BUS(PDEVINFO(88, 0, 1)),
+					  PCI_INFO_SLOT(PDEVINFO(88, 0, 1)), PCI_INFO_FUNC(PDEVINFO(88, 0, 1)));
 			}
-			#endif
+#endif
 			nvfs_pdevinfo_set_link_width(&pdevinfo, lnk_width);
 			nvfs_pdevinfo_set_link_speed(&pdevinfo, lnk_speed);
 		}
@@ -442,17 +447,21 @@ static unsigned int __nvfs_gpu2peer_numa_distance(unsigned int gpu_index,
 						  unsigned int peer_index)
 {
 	int na, nb;
+	uint64_t pcigpuinfo = gpu_info_table[gpu_index];
+	uint64_t pcipeerinfo = peer_info_table[peer_index];
 
 	na = nvfs_get_numa_node_from_pdevinfo(gpu_info_table[gpu_index]);
 	if (na < 0) {
 		nvfs_err("warning: error retrieving numa node for device "PCI_INFO_FMT,
-			PCI_INFO_ARGS(gpu_info_table[gpu_index]));
+			 PCI_INFO_DOMAIN(pcigpuinfo), PCI_INFO_BUS(pcigpuinfo),
+			 PCI_INFO_SLOT(pcigpuinfo), PCI_INFO_FUNC(pcigpuinfo));
 	}
 
 	nb = nvfs_get_numa_node_from_pdevinfo(peer_info_table[peer_index]);
 	if (nb < 0) {
 		nvfs_err("warning: error retrieving numa node for device "PCI_INFO_FMT,
-			PCI_INFO_ARGS(peer_info_table[peer_index]));
+			 PCI_INFO_DOMAIN(pcipeerinfo), PCI_INFO_BUS(pcipeerinfo),
+			 PCI_INFO_SLOT(pcipeerinfo), PCI_INFO_FUNC(pcipeerinfo));
 	}
 
 	// For systems which are not NUMA aware
@@ -609,10 +618,13 @@ static unsigned int __nvfs_get_gpu2peer_distance(unsigned int gpu_index,
 				pci_dist, PROC_LIMIT_PCI_DISTANCE_COMMONRP);
 	}
 
-	nvfs_dbg("nvfs_pci: pci_dist matrix[gpu=%u][peer=%u] "PCI_INFO_FMT"->"PCI_INFO_FMT
-		" pci_dist:%u\n", gpu_index, peer_index,
-		PCI_INFO_ARGS(gpu_info_table[gpu_index]),
-		PCI_INFO_ARGS(peer_info_table[peer_index]), pci_dist);
+	nvfs_dbg("nvfs_pci: pci_dist matrix[gpu=%u][peer=%u] "PCI_INFO_FMT"->"PCI_INFO_FMT" pci_dist:%u\n",
+		 gpu_index, peer_index,
+		 PCI_INFO_DOMAIN(gpu_info_table[gpu_index]), PCI_INFO_BUS(gpu_info_table[gpu_index]),
+		 PCI_INFO_SLOT(gpu_info_table[gpu_index]), PCI_INFO_FUNC(gpu_info_table[gpu_index]),
+		 PCI_INFO_DOMAIN(peer_info_table[peer_index]), PCI_INFO_BUS(peer_info_table[peer_index]),
+		 PCI_INFO_SLOT(peer_info_table[peer_index]), PCI_INFO_FUNC(peer_info_table[peer_index]),
+		 pci_dist);
 	return pci_dist;
 }
 
@@ -704,11 +716,15 @@ unsigned int nvfs_get_gpu2peer_distance(struct device *dev, unsigned int gpu_ind
 	}
 
 	rank = gpu_rank_matrix[gpu_index][peer_index].rank;
-	#ifdef NVFS_PCI_DEBUG
+#ifdef NVFS_PCI_DEBUG
 	nvfs_dbg("%s: "PCI_INFO_FMT"(%u)->"PCI_INFO_FMT"(%u) rank :%u\n", __func__,
-		 PCI_INFO_ARGS(gpu_info_table[gpu_index]), gpu_index,
-		 PCI_INFO_ARGS(peer_info_table[peer_index]), peer_index, rank);
-	#endif
+		 PCI_INFO_DOMAIN(gpu_info_table[gpu_index]), PCI_INFO_BUS(gpu_info_table[gpu_index]),
+		 PCI_INFO_SLOT(gpu_info_table[gpu_index]), PCI_INFO_FUNC(gpu_info_table[gpu_index]),
+		 gpu_index,
+		 PCI_INFO_DOMAIN(peer_info_table[peer_index]), PCI_INFO_BUS(peer_info_table[peer_index]),
+		 PCI_INFO_SLOT(peer_info_table[peer_index]), PCI_INFO_FUNC(peer_info_table[peer_index]),
+		 peer_index, rank);
+#endif
 	return rank;
 }
 
@@ -844,15 +860,17 @@ int nvfs_peer_distance_show(struct seq_file *m, void *data)
 				continue;
 
 			seq_printf(m, PCI_INFO_FMT"\t"PCI_INFO_FMT"\t0x%08x\t0x%04x\t0x%02x\t0x%02x\t0x%02x\t%llu\t%s\n",
-				PCI_INFO_ARGS(pdevinfo),
-				PCI_INFO_ARGS(peerinfo),
-				gpu_rank_matrix[i][j].rank,
-				gpu_rank_matrix[i][j].pci_dist,
-				nvfs_pdevinfo_get_link_width(peerinfo),
-				nvfs_pdevinfo_get_link_speed(peerinfo),
-				nvfs_get_numa_node_from_pdevinfo(peerinfo),
-				gpu_rank_matrix[i][j].count,
-				nvfs_pdevinfo_get_class_name(peerinfo));
+				   PCI_INFO_DOMAIN(pdevinfo), PCI_INFO_BUS(pdevinfo),
+				   PCI_INFO_SLOT(pdevinfo), PCI_INFO_FUNC(pdevinfo),
+				   PCI_INFO_DOMAIN(peerinfo), PCI_INFO_BUS(peerinfo),
+				   PCI_INFO_SLOT(peerinfo), PCI_INFO_FUNC(peerinfo),
+				   gpu_rank_matrix[i][j].rank,
+				   gpu_rank_matrix[i][j].pci_dist,
+				   nvfs_pdevinfo_get_link_width(peerinfo),
+				   nvfs_pdevinfo_get_link_speed(peerinfo),
+				   nvfs_get_numa_node_from_pdevinfo(peerinfo),
+				   gpu_rank_matrix[i][j].count,
+				   nvfs_pdevinfo_get_class_name(peerinfo));
 		}
 	}
 	return 0;
@@ -877,7 +895,9 @@ int nvfs_peer_affinity_show(struct seq_file *m, void *v)
 		if (!pdevinfo)
 			continue;
 
-		seq_printf(m, "GPU :"PCI_INFO_FMT":", PCI_INFO_ARGS(pdevinfo));
+		seq_printf(m, "GPU :"PCI_INFO_FMT":",
+			   PCI_INFO_DOMAIN(pdevinfo), PCI_INFO_BUS(pdevinfo),
+			   PCI_INFO_SLOT(pdevinfo), PCI_INFO_FUNC(pdevinfo));
 		for (j = 1; j <= PROC_LIMIT_PCI_DISTANCE_COMMONRP; j++)
 			seq_printf(m, "%llu ", nvfs_aggregate_peer_usage_by_distance(i, j));
 
