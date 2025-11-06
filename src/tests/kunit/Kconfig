@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: GPL-2.0
+
+config NVFS_KUNIT_TEST
+	tristate "KUnit tests for NVFS" if !KUNIT_ALL_TESTS
+	depends on KUNIT
+	default KUNIT_ALL_TESTS
+	help
+	  This builds KUnit tests for the NVFS (NVIDIA File System) kernel module.
+	  
+	  The tests cover core functionality including:
+	  - Folio allocation and memory management
+	  - Page mapping operations (kmap_local/kunmap_local)
+	  - Reference counting validation
+	  - Memory pressure and stress testing
+	  
+	  For more information on KUnit and unit tests in general please refer
+	  to the KUnit documentation in Documentation/dev-tools/kunit/.
+
+	  If unsure, say N.
+
+config NVFS_KUNIT_TEST_CORE
+	tristate "NVFS core functionality KUnit tests" if !KUNIT_ALL_TESTS
+	depends on NVFS_KUNIT_TEST
+	default NVFS_KUNIT_TEST
+	help
+	  This enables KUnit tests for NVFS core functionality including
+	  folio allocation, page-to-folio conversion, and basic memory
+	  management operations.
+
+config NVFS_KUNIT_TEST_STRESS
+	tristate "NVFS stress and memory pressure KUnit tests" if !KUNIT_ALL_TESTS
+	depends on NVFS_KUNIT_TEST
+	default NVFS_KUNIT_TEST
+	help
+	  This enables KUnit stress tests for NVFS including memory pressure
+	  simulation, rapid allocation cycles, and edge case testing.
+	  
+	  These tests are more intensive and may take longer to run.

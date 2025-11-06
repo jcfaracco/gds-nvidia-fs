@@ -7,27 +7,27 @@ PWD := $(shell pwd)
 
 # Include subdirectories
 obj-y += kunit/
-obj-y += selftests/
+obj-y += legacy/
 
 # Default targets
-all: kunit selftests
+all: kunit legacy
 
 # Build KUnit tests
 kunit:
 	@echo "Building KUnit tests..."
 	$(MAKE) -C $(KDIR) M=$(PWD)/kunit modules
 
-# Build selftests  
-selftests:
-	@echo "Building selftests..."
-	$(MAKE) -C $(PWD)/selftests
+# Build legacy self-tests  
+legacy:
+	@echo "Building legacy self-tests..."
+	$(MAKE) -C $(PWD)/legacy
 
 # Clean all build artifacts
 clean:
 	@echo "Cleaning KUnit tests..."
 	$(MAKE) -C $(KDIR) M=$(PWD)/kunit clean
-	@echo "Cleaning selftests..."
-	$(MAKE) -C $(PWD)/selftests clean
+	@echo "Cleaning legacy tests..."
+	$(MAKE) -C $(PWD)/legacy clean
 	rm -f *.o *.ko *.mod.c *.mod *.order *.symvers
 
 # Run KUnit tests
@@ -36,24 +36,24 @@ test-kunit:
 	@echo "Use: kunit.py run --kunitconfig=src/tests/kunit/"
 	@echo "Or build with CONFIG_NVFS_KUNIT_TEST=y and boot kernel"
 
-# Run selftests
-test-selftests:
-	@echo "Running selftests..."
-	$(MAKE) -C $(PWD)/selftests test
+# Run legacy tests
+test-legacy:
+	@echo "Running legacy self-tests..."
+	$(MAKE) -C $(PWD)/legacy test
 
 # Install all test modules
-install: kunit selftests
+install: kunit legacy
 	@echo "Installing KUnit test modules..."
 	find kunit/ -name "*.ko" -exec sudo insmod {} \; || true
-	@echo "Installing selftest modules..."
-	$(MAKE) -C $(PWD)/selftests install
+	@echo "Installing legacy test modules..."
+	$(MAKE) -C $(PWD)/legacy install
 
 # Uninstall all test modules
 uninstall:
 	@echo "Uninstalling test modules..."
 	sudo rmmod nvfs_core_kunit || true
 	sudo rmmod nvfs_stress_kunit || true
-	$(MAKE) -C $(PWD)/selftests uninstall || true
+	$(MAKE) -C $(PWD)/legacy uninstall || true
 
 # Show help
 help:
@@ -61,15 +61,15 @@ help:
 	@echo ""
 	@echo "Test Types:"
 	@echo "  KUnit Tests    - Modern kernel unit testing framework"
-	@echo "  Selftests      - Original debugfs-based self-tests"
+	@echo "  Legacy Tests   - Original debugfs-based self-tests"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all           - Build all tests (KUnit + selftests)"
+	@echo "  all           - Build all tests (KUnit + legacy)"
 	@echo "  kunit         - Build KUnit tests only"
-	@echo "  selftests     - Build selftests only"
+	@echo "  legacy        - Build legacy tests only"
 	@echo "  clean         - Clean all build artifacts"
 	@echo "  test-kunit    - Run KUnit tests"
-	@echo "  test-selftests- Run selftests"
+	@echo "  test-legacy   - Run legacy tests"
 	@echo "  install       - Install all test modules"
 	@echo "  uninstall     - Uninstall all test modules"
 	@echo "  help          - Show this help"
@@ -83,8 +83,8 @@ help:
 	@echo "  # Run with kunit tool"
 	@echo "  kunit.py run --kunitconfig=src/tests/kunit/"
 	@echo ""
-	@echo "Selftest Usage:"
-	@echo "  make test-selftests"
+	@echo "Legacy Test Usage:"
+	@echo "  make test-legacy"
 	@echo "  echo 'all' > /sys/kernel/debug/nvfs_test/run_tests"
 
-.PHONY: all kunit selftests clean test-kunit test-selftests install uninstall help
+.PHONY: all kunit legacy clean test-kunit test-legacy install uninstall help

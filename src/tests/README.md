@@ -1,229 +1,236 @@
-# NVFS Kernel Module Self-Tests
+# NVFS Kernel Module Test Suite
 
-This directory contains comprehensive self-tests for the NVFS (NVIDIA File System) kernel module. The test suite validates core functionality, memory management, and stress testing scenarios.
+This directory contains comprehensive tests for the NVFS (NVIDIA File System) kernel module, organized into modern KUnit tests and kernel selftests.
 
-## Test Architecture
+## Directory Structure
 
-### Test Framework Components
+```
+src/tests/
+├── kunit/                    # Modern KUnit-based tests
+│   ├── nvfs_core_kunit.c     # Core functionality KUnit tests  
+│   ├── nvfs_stress_kunit.c   # Stress testing KUnit tests
+│   ├── Kconfig               # KUnit test configuration
+│   ├── Makefile              # KUnit build system
+│   └── .kunitconfig          # KUnit configuration file
+├── selftests/                # Kernel selftests (debugfs-based)
+│   ├── nvfs_test_framework.c # Selftest framework
+│   ├── nvfs_core_tests.c     # Core selftests
+│   ├── nvfs_stress_tests.c   # Stress selftests
+│   ├── nvfs_stub_tests.c     # Stub selftests
+│   ├── nvfs_test.h           # Selftest headers
+│   └── Makefile              # Selftest build system
+├── scripts/                  # Test automation scripts
+│   └── test_runner.sh        # Selftest runner script
+├── Makefile                  # Main build system
+└── README.md                 # This file
+```
 
-1. **Test Framework** (`nvfs_test_framework.c`)
-   - Core test execution engine
-   - Debugfs interface for test control
-   - Result reporting and statistics
-   - Test suite management
+## Test Types
 
-2. **Test Suites**
-   - **Core Tests** (`nvfs_core_tests.c`) - Basic functionality validation
-   - **Stress Tests** (`nvfs_stress_tests.c`) - Intensive testing and edge cases
-   - **Stub Tests** (`nvfs_stub_tests.c`) - Placeholder tests for future features
+### 🧪 KUnit Tests (Recommended)
 
-3. **Test Infrastructure**
-   - **Makefile** - Build system for test modules
-   - **test_runner.sh** - Automated test execution script
-   - **nvfs_test.h** - Test framework headers and macros
+Modern kernel unit testing framework providing:
 
-## Features
+- **Isolated unit tests** that run in kernel space
+- **Structured test organization** with test suites and cases
+- **Rich assertion framework** (KUNIT_EXPECT_*, KUNIT_ASSERT_*)
+- **Integration with kernel testing tools**
+- **Better error reporting and debugging**
+
+**Test Coverage:**
+- Core functionality (folio allocation, page mapping, reference counting)
+- Stress testing (memory pressure, rapid cycles, edge cases)
+- Memory management validation
+- Error handling scenarios
+
+### 🔧 Kernel Selftests
+
+Debugfs-based testing framework:
+
+- **Runtime testing** via debugfs interface
+- **Live system validation** 
+- **Manual test execution** control
+- **Integrated with kernel selftest infrastructure**
+
+## Quick Start
+
+### Running KUnit Tests
+
+```bash
+# Build KUnit tests
+make kunit
+
+# Run with KUnit tool (recommended)
+kunit.py run --kunitconfig=src/tests/kunit/
+
+# Or build into kernel and run
+CONFIG_NVFS_KUNIT_TEST=y make && boot
+```
+
+### Running Selftests
+
+```bash
+# Build and run selftests
+make test-selftests
+
+# Or manually
+make selftests
+echo 'all' > /sys/kernel/debug/nvfs_test/run_tests
+```
+
+### Build All Tests
+
+```bash
+# Build both KUnit and selftests
+make all
+
+# Clean all tests
+make clean
+
+# Show help
+make help
+```
+
+## KUnit Test Configuration
+
+Configure KUnit tests via kernel config:
+
+```kconfig
+CONFIG_KUNIT=y                      # Enable KUnit framework
+CONFIG_NVFS_KUNIT_TEST=y            # Enable NVFS KUnit tests
+CONFIG_NVFS_KUNIT_TEST_CORE=y       # Core functionality tests
+CONFIG_NVFS_KUNIT_TEST_STRESS=y     # Stress and edge case tests
+```
+
+## Test Categories
 
 ### Core Functionality Tests
-- Folio allocation and deallocation (single and multi-page)
-- Page-to-folio conversion validation
-- kmap_local_page/kunmap_local functionality
-- Reference counting verification
-- Memory allocation failure handling
+- **Folio allocation/deallocation** (single and multi-page)
+- **Page-to-folio conversion** validation
+- **kmap_local_page/kunmap_local** functionality
+- **Reference counting** correctness
+- **Memory allocation failure** handling
 
-### Stress and Edge Case Tests
-- High-volume folio allocation/deallocation cycles
-- Concurrent memory mapping operations
-- Maximum order allocation attempts
-- Rapid allocation/deallocation cycles
-- Memory pressure simulation
-- Reference counting stress testing
+### Stress Tests
+- **Memory pressure simulation** with high-order allocations
+- **Rapid allocation/deallocation cycles**
+- **Concurrent kmap operations** testing
+- **Edge cases** (maximum order allocations, boundary conditions)
+- **Reference counting under stress**
 
-### Test Framework Features
-- **Debugfs Interface**: `/sys/kernel/debug/nvfs_test/run_tests`
-- **Multiple Execution Modes**: Individual test suites or comprehensive testing
-- **Real-time Results**: Statistics and pass/fail reporting
-- **Kernel Log Integration**: Detailed test output in dmesg
-- **Automated Cleanup**: Module loading/unloading management
+### Integration Tests
+- **NVFS-specific operations** validation
+- **GPU memory interaction** testing (when applicable)
+- **File system integration** scenarios
 
-## Usage
+## Usage Examples
 
-### Quick Start
+### KUnit Testing Workflow
 
 ```bash
-# Run all tests (requires root privileges)
-sudo ./test_runner.sh
+# Development workflow
+cd src/tests
+make kunit
+kunit.py run --kunitconfig=kunit/
 
-# Run specific test suite
-sudo ./test_runner.sh core
-sudo ./test_runner.sh stress
+# CI/CD integration
+kunit.py run --kunitconfig=kunit/ --json > test_results.json
 
-# Build tests only
-sudo ./test_runner.sh --build
-
-# Clean build artifacts
-sudo ./test_runner.sh --clean
+# Running specific test suites
+kunit.py run --kunitconfig=kunit/ nvfs_core
+kunit.py run --kunitconfig=kunit/ nvfs_stress
 ```
 
-### Manual Test Execution
+### Selftest Workflow
 
 ```bash
-# Build test module
-cd tests/
-make
+# Quick validation
+make test-selftests
 
-# Load test module
-sudo insmod nvfs_selftest.ko
+# Manual control
+make selftests
+sudo insmod selftests/nvfs_selftest.ko
+echo 'core' > /sys/kernel/debug/nvfs_test/run_tests
+dmesg | tail -20
+```
 
-# Run tests via debugfs
-echo 'all' | sudo tee /sys/kernel/debug/nvfs_test/run_tests
-echo 'core' | sudo tee /sys/kernel/debug/nvfs_test/run_tests
-echo 'stress' | sudo tee /sys/kernel/debug/nvfs_test/run_tests
+## Development Guidelines
 
-# View results
+### Adding New KUnit Tests
+
+1. **Create test function:**
+   ```c
+   static void nvfs_new_feature_test(struct kunit *test)
+   {
+       KUNIT_ASSERT_NOT_NULL(test, some_function());
+       KUNIT_EXPECT_EQ(test, expected, actual);
+   }
+   ```
+
+2. **Add to test suite:**
+   ```c
+   static struct kunit_case nvfs_core_test_cases[] = {
+       KUNIT_CASE(nvfs_new_feature_test),
+       // ... other tests
+       {},
+   };
+   ```
+
+3. **Update configuration** in `kunit/Kconfig` if needed
+
+### KUnit Best Practices
+
+- **Use KUNIT_ASSERT_*** for critical conditions that should stop the test
+- **Use KUNIT_EXPECT_*** for conditions you want to check but continue testing
+- **Keep tests focused** - one concept per test function
+- **Use descriptive test names** that explain what is being tested
+- **Clean up resources** in test functions (folios, mappings, etc.)
+
+## Debugging Tests
+
+### KUnit Test Debugging
+
+```bash
+# Run with verbose output
+kunit.py run --kunitconfig=kunit/ --raw_output
+
+# Debug specific test
+kunit.py run --kunitconfig=kunit/ --filter="nvfs_core.*allocation"
+
+# Build for debugging
+echo "CONFIG_DEBUG_KERNEL=y" >> kunit/.kunitconfig
+```
+
+### Selftest Debugging
+
+```bash
+# Monitor test execution
+dmesg -w &
+echo 'all' > /sys/kernel/debug/nvfs_test/run_tests
+
+# Check test status
 cat /sys/kernel/debug/nvfs_test/run_tests
-
-# Check detailed output
-dmesg | grep "NVFS_TEST:"
-
-# Unload module
-sudo rmmod nvfs_selftest
 ```
 
-### Available Test Suites
+## Contributing
 
-- `all` - Execute all test suites
-- `core` - Core functionality tests
-- `mmap` - Memory mapping tests (stub)
-- `dma` - DMA functionality tests (stub)
-- `memory` - Memory management tests (stub)
-- `stress` - Stress and edge case tests
+When adding new tests:
 
-## Test Results
+1. **Prefer KUnit tests** for new functionality
+2. **Maintain selftests** for runtime validation scenarios
+3. **Update documentation** when adding new test categories
+4. **Follow kernel coding style** (use checkpatch.pl)
+5. **Test both success and failure paths**
 
-### Output Format
-```
-NVFS Self-Test Results
-======================
-Total tests: 15
-Passed: 14
-Failed: 0
-Skipped: 1
-Success rate: 93%
-Elapsed time: 234 jiffies (58 ms)
-```
+## KUnit vs Selftests
 
-### Result Interpretation
-- **PASS**: Test completed successfully
-- **FAIL**: Test failed with detailed error information
-- **SKIP**: Test was skipped (e.g., due to missing dependencies)
+The test suite supports both frameworks for different use cases:
 
-## Development
+- **KUnit tests**: Ideal for unit testing, CI/CD integration, and development workflows
+- **Selftests**: Best for runtime validation, live system testing, and manual verification
 
-### Adding New Tests
-
-1. **Create Test Function**:
-```c
-NVFS_TEST_DECLARE(my_new_test)
-{
-    // Test implementation
-    NVFS_TEST_ASSERT(condition, "Error message");
-    return NVFS_TEST_PASS;
-}
-```
-
-2. **Add to Test Suite**:
-```c
-static struct nvfs_test_case my_tests[] = {
-    NVFS_TEST_CASE(my_new_test, "Description of test"),
-    // ... other tests
-};
-```
-
-3. **Register Test Suite**:
-```c
-struct nvfs_test_suite my_test_suite = {
-    .name = "My Test Suite",
-    .tests = my_tests,
-    .num_tests = ARRAY_SIZE(my_tests),
-    .setup = my_setup_function,
-    .teardown = my_teardown_function,
-};
-```
-
-### Test Assertions
-
-Available assertion macros:
-- `NVFS_TEST_ASSERT(condition, msg)` - General condition check
-- `NVFS_TEST_ASSERT_EQ(expected, actual, msg)` - Equality check
-- `NVFS_TEST_ASSERT_NULL(ptr, msg)` - Null pointer check
-- `NVFS_TEST_ASSERT_NOT_NULL(ptr, msg)` - Non-null pointer check
-
-## Integration with CI/CD
-
-### GitHub Actions Integration
-
-The test suite integrates with the existing checkpatch workflow and can be extended for automated testing:
-
-```yaml
-- name: Run NVFS Self-Tests
-  run: |
-    cd tests/
-    sudo ./test_runner.sh all
-    # Check for test failures
-    if dmesg | grep -q "NVFS_TEST.*FAIL"; then
-      echo "Tests failed"
-      exit 1
-    fi
-```
-
-### Requirements
-
-- Linux kernel development headers
-- Root privileges for module operations
-- debugfs support
-- Modern kernel with folio API support (5.16+)
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Module Load Failures**
-   - Ensure kernel headers are installed
-   - Check for symbol conflicts with main NVFS module
-   - Verify kernel version compatibility
-
-2. **Test Execution Failures**
-   - Confirm debugfs is mounted: `mount -t debugfs none /sys/kernel/debug`
-   - Check dmesg for detailed error messages
-   - Ensure sufficient memory for stress tests
-
-3. **Build Issues**
-   - Install kernel development packages: `dnf install kernel-devel`
-   - Verify KDIR path in Makefile
-   - Check for missing include files
-
-### Debug Information
-
-Enable verbose output:
-```bash
-# View detailed kernel messages
-dmesg -w | grep NVFS_TEST
-
-# Check module status
-lsmod | grep nvfs
-
-# Verify debugfs entries
-ls -la /sys/kernel/debug/nvfs_test/
-```
-
-## Future Enhancements
-
-- Integration with actual NVFS module testing
-- Performance benchmarking capabilities
-- Automated regression testing
-- Extended DMA and MMAP test coverage
-- GPU memory interaction testing
-- Continuous integration pipeline integration
-
-For questions or contributions, please refer to the main NVFS project documentation.
+**KUnit advantages:**
+- Better integration with kernel testing infrastructure
+- Improved debugging and error reporting  
+- Structured test organization
+- Automated test discovery and execution
