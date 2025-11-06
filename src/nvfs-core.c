@@ -364,12 +364,12 @@ static void nvfs_get_pages_free_callback(void *data)
 			nvfs_err("Error when freeing page table\n");
 	}
 
-	kaddr = kmap_atomic(gpu_info->end_fence_page);
+	kaddr = kmap_local_page(gpu_info->end_fence_page);
 	orig_kaddr = kaddr;
 	kaddr = (void *)((char *)kaddr + gpu_info->offset_in_page);
 	nvfs_ioctl_mpage_ptr = (nvfs_ioctl_metapage_ptr_t) kaddr;
 	nvfs_ioctl_mpage_ptr->state = NVFS_IO_META_DIED;
-	kunmap_atomic(orig_kaddr);
+	kunmap_local(orig_kaddr);
 	nvfs_dbg("%s: marking end fence state dead\n", __func__);
 
 	// Reference taken during nvfs_map()
@@ -725,7 +725,7 @@ nvfs_io_sparse_dptr_t nvfs_io_map_sparse_data(nvfs_mgroup_ptr_t nvfs_mgroup)
 {
 	nvfs_ioctl_metapage_ptr_t nvfs_ioctl_mpage_ptr;
 	nvfs_io_sparse_dptr_t sparse_ptr;
-	void *kaddr = kmap_atomic(nvfs_mgroup->gpu_info.end_fence_page);
+	void *kaddr = kmap_local_page(nvfs_mgroup->gpu_info.end_fence_page);
 
 	kaddr = (void *)((char *)kaddr + nvfs_mgroup->gpu_info.offset_in_page);
 	nvfs_ioctl_mpage_ptr = (nvfs_ioctl_metapage_ptr_t) kaddr;
@@ -743,7 +743,7 @@ void nvfs_io_unmap_sparse_data(nvfs_io_sparse_dptr_t ptr,
 						struct nvfs_ioctl_metapage,
 						sparse_data);
 	kaddr->state = state;
-	kunmap_atomic(kaddr);
+	kunmap_local(kaddr);
 }
 
 void nvfs_io_free(nvfs_io_t *nvfsio, long res)
@@ -803,7 +803,7 @@ void nvfs_io_free(nvfs_io_t *nvfsio, long res)
 	 */
 	if (!sync) {
 		nvfs_ioctl_metapage_ptr_t mpage_ptr;
-		void *kaddr = kmap_atomic(gpu_info->end_fence_page);
+		void *kaddr = kmap_local_page(gpu_info->end_fence_page);
 		void *orig_kaddr = kaddr;
 
 		kaddr = (void *)((char *) kaddr + gpu_info->offset_in_page);
@@ -819,7 +819,7 @@ void nvfs_io_free(nvfs_io_t *nvfsio, long res)
 
 		mpage_ptr->end_fence_val = nvfsio->end_fence_value;
 
-		kunmap_atomic(orig_kaddr);
+		kunmap_local(orig_kaddr);
 
 		nvfs_dbg("Async - nvfs_io complete. res %ld\n",
 				res);
