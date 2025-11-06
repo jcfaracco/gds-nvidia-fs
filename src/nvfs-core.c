@@ -91,7 +91,7 @@
 #define NVIDIA_MIN_DRIVER_FOR_VGPU 555
 
 static int major_number;
-static struct class *nvfs_class;
+static struct class* nvfs_class;
 static struct device *nvfs_device[MAX_NVFS_DEVICES];
 static atomic_t nvfs_shutdown;
 static wait_queue_head_t wq;
