@@ -60,39 +60,42 @@ enum nvfs_block_state {
 	NVFS_IO_LAST_STATE = NVFS_IO_DMA_ERROR,
 };
 
-#define NVFS_IO_STATE_ENTRIES \
-X(0, IO_FREE, FREE) \
-X(1, IO_INIT, INIT) \
-X(2, IO_READY, READY) \
-X(3, IO_IN_PROGRESS, IN_PROGRESS) \
-X(4, IO_TERMINATE_REQ, TERMINATE_REQ) \
-X(5, IO_TERMINATED, TERMINATED) \
-X(6, IO_CALLBACK_REQ, CALLBACK_REQ) \
-X(7, IO_CALLBACK_END, CALLBACK_END) \
-X(8, IO_UNPIN_PAGES_ALREADY_INVOKED, UNPIN_PAGES_ALREADY_INVOKED)
+enum nvfs_io_state {
+	IO_FREE = 0,
+	IO_INIT = 1,
+	IO_READY = 2,
+	IO_IN_PROGRESS = 3,
+	IO_TERMINATE_REQ = 4,
+	IO_TERMINATED = 5,
+	IO_CALLBACK_REQ = 6,
+	IO_CALLBACK_END = 7,
+	IO_UNPIN_PAGES_ALREADY_INVOKED = 8,
+	NVFS_IO_STATE_MAX,
+};
 
-
-typedef enum nvfs_io_state {
-#define X(code, name, string) name = code,
-	NVFS_IO_STATE_ENTRIES
-#undef X
-} nvfs_io_state;
-
-typedef enum nvfs_metastate {
+enum nvfs_metastate {
 	NVFS_IO_META_CLEAN = 0,
 	NVFS_IO_META_SPARSE = 1,
 	NVFS_IO_META_DIED = 2,
-} nvfs_metastate_enum;
+};
+
+static const char * const nvfs_io_state_names[NVFS_IO_STATE_MAX] = {
+	[IO_FREE] = "FREE",
+	[IO_INIT] = "INIT",
+	[IO_READY] = "READY",
+	[IO_IN_PROGRESS] = "IN_PROGRESS",
+	[IO_TERMINATE_REQ] = "TERMINATE_REQ",
+	[IO_TERMINATED] = "TERMINATED",
+	[IO_CALLBACK_REQ] = "CALLBACK_REQ",
+	[IO_CALLBACK_END] = "CALLBACK_END",
+	[IO_UNPIN_PAGES_ALREADY_INVOKED] = "UNPIN_PAGES_ALREADY_INVOKED",
+};
 
 static inline const char *nvfs_io_state_status(int state)
 {
-	switch (state) {
-#define X(code, name, string) \
-	case name: return #string;
-		    NVFS_IO_STATE_ENTRIES
-#undef X
-	default : return "illegal io state";
-	}
+	if (state >= 0 && state < NVFS_IO_STATE_MAX)
+		return nvfs_io_state_names[state];
+	return "illegal io state";
 }
 
 typedef struct nvfs_io {
@@ -111,7 +114,7 @@ typedef struct nvfs_io {
 	unsigned long cur_gpu_base_index;   // starting gpu index in this op
 	unsigned long nvfs_active_blocks_start;
 	unsigned long nvfs_active_blocks_end;
-	nvfs_metastate_enum state;      // set if the io encountered sparse data
+	enum nvfs_metastate state;      // set if the io encountered sparse data
 	int retrycnt;                   // retry count for retriable errors
 	wait_queue_head_t rw_wq;        // wait queue for serializing parallel dma req
 	struct kiocb common;		// kiocb structure used for read/write operation

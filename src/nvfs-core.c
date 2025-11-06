@@ -736,7 +736,7 @@ nvfs_io_sparse_dptr_t nvfs_io_map_sparse_data(nvfs_mgroup_ptr_t nvfs_mgroup)
 }
 
 void nvfs_io_unmap_sparse_data(nvfs_io_sparse_dptr_t ptr,
-				nvfs_metastate_enum state)
+				enum nvfs_metastate state)
 {
 	nvfs_ioctl_metapage_ptr_t kaddr = container_of(ptr,
 						struct nvfs_ioctl_metapage,

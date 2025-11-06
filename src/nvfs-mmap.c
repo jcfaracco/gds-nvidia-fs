@@ -935,7 +935,7 @@ void nvfs_mgroup_check_and_set(nvfs_mgroup_ptr_t nvfs_mgroup, enum nvfs_block_st
 
 	// Unmap the sparse ptr
 	if (sparse_ptr) {
-		nvfs_metastate_enum state;
+		enum nvfs_metastate state;
 
 		// Update the nholes, state to the user structure.
 		sparse_ptr->nholes = (nholes + 1);

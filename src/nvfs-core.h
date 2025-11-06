@@ -201,7 +201,7 @@ typedef struct nvfs_io_sparse_data *nvfs_io_sparse_dptr_t;
 struct nvfs_ioctl_metapage {
 	volatile u64 end_fence_val;
 	volatile u64 result;
-	volatile nvfs_metastate_enum state;
+	volatile enum nvfs_metastate state;
 	struct nvfs_io_sparse_data sparse_data;
 };
 typedef struct nvfs_ioctl_metapage *nvfs_ioctl_metapage_ptr_t;
@@ -212,7 +212,7 @@ long nvfs_io_start_op(nvfs_io_t *nvfsio);
 void nvfs_io_free(nvfs_io_t *nvfsio, long res);
 
 nvfs_io_sparse_dptr_t nvfs_io_map_sparse_data(nvfs_mgroup_ptr_t nvfs_mgroup);
-void nvfs_io_unmap_sparse_data(nvfs_io_sparse_dptr_t ptr, nvfs_metastate_enum state);
+void nvfs_io_unmap_sparse_data(nvfs_io_sparse_dptr_t ptr, enum nvfs_metastate state);
 
 int nvfs_get_dma(void *device, struct page *page, void **gpu_base_dma, int dma_length);
 
