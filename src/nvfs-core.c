@@ -368,7 +368,7 @@ static void nvfs_get_pages_free_callback(void *data)
 	orig_kaddr = kaddr;
 	kaddr = (void *)((char *)kaddr + gpu_info->offset_in_page);
 	nvfs_ioctl_mpage_ptr = (nvfs_ioctl_metapage_ptr_t) kaddr;
-	nvfs_ioctl_mpage_ptr->state = NVFS_IO_META_DIED;
+	WRITE_ONCE(nvfs_ioctl_mpage_ptr->state, NVFS_IO_META_DIED);
 	kunmap_local(orig_kaddr);
 	nvfs_dbg("%s: marking end fence state dead\n", __func__);
 
@@ -810,14 +810,14 @@ void nvfs_io_free(nvfs_io_t *nvfsio, long res)
 		mpage_ptr = (nvfs_ioctl_metapage_ptr_t) kaddr;
 
 		// User space library is polling on these values.
-		mpage_ptr->result = res;
+		WRITE_ONCE(mpage_ptr->result, res);
 
 		// Use memory barrier to sync free pages
 		wmb();
 		nvfs_dbg("freeing nvfs io end_fence_page: %llx and offset in page : %u in kernel\n",
 				(u64)gpu_info->end_fence_page, gpu_info->offset_in_page);
 
-		mpage_ptr->end_fence_val = nvfsio->end_fence_value;
+		WRITE_ONCE(mpage_ptr->end_fence_val, nvfsio->end_fence_value);
 
 		kunmap_local(orig_kaddr);
 
