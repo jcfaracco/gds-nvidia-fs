@@ -13,6 +13,16 @@
 #include <linux/jiffies.h>
 #include "nvfs_test.h"
 
+/* Forward declaration */
+long nvfs_count_ops(void);
+
+/* Weak stub for nvfs_count_ops when main NVFS module is not loaded */
+long __weak nvfs_count_ops(void)
+{
+	/* Return 1 to indicate stub/test mode */
+	return 1;
+}
+
 static struct dentry *nvfs_test_dir;
 static struct dentry *nvfs_test_results_file;
 static struct nvfs_test_stats global_stats;
@@ -98,7 +108,7 @@ void nvfs_test_print_results(struct nvfs_test_stats *stats)
 	pr_info("NVFS_TEST: Failed: %d\n", stats->failed_tests);
 	pr_info("NVFS_TEST: Skipped: %d\n", stats->skipped_tests);
 	pr_info("NVFS_TEST: Elapsed time: %lu jiffies (%lu ms)\n",
-		elapsed, jiffies_to_msecs(elapsed));
+		elapsed, (unsigned long)jiffies_to_msecs(elapsed));
 	pr_info("NVFS_TEST: =================================\n");
 }
 
@@ -148,8 +158,8 @@ static int nvfs_test_show(struct seq_file *m, void *v)
 {
 	unsigned long elapsed = global_stats.end_time - global_stats.start_time;
 
-	seq_printf(m, "NVFS Self-Test Results\n");
-	seq_printf(m, "======================\n");
+	seq_puts(m, "NVFS Self-Test Results\n");
+	seq_puts(m, "======================\n");
 	seq_printf(m, "Total tests: %d\n", global_stats.total_tests);
 	seq_printf(m, "Passed: %d\n", global_stats.passed_tests);
 	seq_printf(m, "Failed: %d\n", global_stats.failed_tests);
@@ -158,14 +168,14 @@ static int nvfs_test_show(struct seq_file *m, void *v)
 		   global_stats.total_tests > 0 ?
 		   (global_stats.passed_tests * 100) / global_stats.total_tests : 0);
 	seq_printf(m, "Elapsed time: %lu jiffies (%lu ms)\n",
-		   elapsed, jiffies_to_msecs(elapsed));
-	seq_printf(m, "\nUsage:\n");
-	seq_printf(m, "  echo 'all' > /sys/kernel/debug/nvfs_test/run_tests\n");
-	seq_printf(m, "  echo 'core' > /sys/kernel/debug/nvfs_test/run_tests\n");
-	seq_printf(m, "  echo 'mmap' > /sys/kernel/debug/nvfs_test/run_tests\n");
-	seq_printf(m, "  echo 'dma' > /sys/kernel/debug/nvfs_test/run_tests\n");
-	seq_printf(m, "  echo 'memory' > /sys/kernel/debug/nvfs_test/run_tests\n");
-	seq_printf(m, "  echo 'stress' > /sys/kernel/debug/nvfs_test/run_tests\n");
+		   elapsed, (unsigned long)jiffies_to_msecs(elapsed));
+	seq_puts(m, "\nUsage:\n");
+	seq_puts(m, "  echo 'all' > /sys/kernel/debug/nvfs_test/run_tests\n");
+	seq_puts(m, "  echo 'core' > /sys/kernel/debug/nvfs_test/run_tests\n");
+	seq_puts(m, "  echo 'mmap' > /sys/kernel/debug/nvfs_test/run_tests\n");
+	seq_puts(m, "  echo 'dma' > /sys/kernel/debug/nvfs_test/run_tests\n");
+	seq_puts(m, "  echo 'memory' > /sys/kernel/debug/nvfs_test/run_tests\n");
+	seq_puts(m, "  echo 'stress' > /sys/kernel/debug/nvfs_test/run_tests\n");
 
 	return 0;
 }
@@ -232,3 +242,35 @@ int nvfs_run_all_tests(void)
 
 	return ret;
 }
+
+/* Module initialization */
+static int __init nvfs_selftest_init(void)
+{
+	int ret;
+
+	pr_info("NVFS_TEST: Initializing NVFS selftest module\n");
+
+	ret = nvfs_test_init();
+	if (ret) {
+		pr_err("NVFS_TEST: Failed to initialize test framework: %d\n", ret);
+		return ret;
+	}
+
+	pr_info("NVFS_TEST: Selftest module loaded successfully\n");
+	pr_info("NVFS_TEST: Available test suites: core, mmap, dma, memory, stress\n");
+	return 0;
+}
+
+/* Module cleanup */
+static void __exit nvfs_selftest_exit(void)
+{
+	pr_info("NVFS_TEST: Unloading NVFS selftest module\n");
+	nvfs_test_exit();
+	pr_info("NVFS_TEST: Selftest module unloaded\n");
+}
+
+module_init(nvfs_selftest_init);
+module_exit(nvfs_selftest_exit);
+
+MODULE_LICENSE("GPL v2");
+MODULE_DESCRIPTION("NVFS Self-Test Framework");
