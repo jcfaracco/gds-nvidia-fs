@@ -1,0 +1,9 @@
+src/*.cmd
+src/Module.symvers
+src/config-host.h
+src/modules.order
+src/nv.symvers
+src/*.o
+src/nvidia-fs.ko
+src/*.mod*
+src/nvidia.ko
