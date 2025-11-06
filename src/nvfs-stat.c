@@ -130,13 +130,16 @@ static void nvfs_print_gpuinfo(struct seq_file *m)
 	rcu_read_lock();
 
 	hash_for_each_rcu(nvfs_gpu_stat_hash, temp, gpustat, hash_link)	{
+		u64 pdevinfo = nvfs_lookup_gpu_hash_index_entry(gpustat->gpu_index);
+
 		seq_printf(m, "GPU "PCI_INFO_FMT" uuid:%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x : "
 #ifdef HAVE_ATOMIC64_LONG
 			   "Registered_MiB=%lu Cache_MiB=%lu max_pinned_MiB=%lu ",
 #else
 			   "Registered_MiB=%llu Cache_MiB=%llu max_pinned_MiB=%llu ",
 #endif
-			   PCI_INFO_ARGS(nvfs_lookup_gpu_hash_index_entry(gpustat->gpu_index)),
+			   PCI_INFO_DOMAIN(pdevinfo), PCI_INFO_BUS(pdevinfo),
+			   PCI_INFO_SLOT(pdevinfo), PCI_INFO_FUNC(pdevinfo),
 			   gpustat->gpu_uuid[0], gpustat->gpu_uuid[1], gpustat->gpu_uuid[2], gpustat->gpu_uuid[3],
 			   gpustat->gpu_uuid[4], gpustat->gpu_uuid[5], gpustat->gpu_uuid[6], gpustat->gpu_uuid[7],
 			   gpustat->gpu_uuid[8], gpustat->gpu_uuid[9], gpustat->gpu_uuid[10], gpustat->gpu_uuid[11],

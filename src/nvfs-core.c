@@ -548,7 +548,8 @@ retry:
 			 gpu_info, nvfsio, NVFS_GET_PCI_DEVID(peer));
 
 		nvfs_dbg("nvfs dma device affinity gpu:"PCI_INFO_FMT" peer: %04x:%02x:%02x:%d\n",
-			 PCI_INFO_ARGS(gpu_info->pdevinfo),
+			 PCI_INFO_DOMAIN(gpu_info->pdevinfo), PCI_INFO_BUS(gpu_info->pdevinfo),
+			 PCI_INFO_SLOT(gpu_info->pdevinfo), PCI_INFO_FUNC(gpu_info->pdevinfo),
 			 peer->bus ? pci_domain_nr(peer->bus) : 0,
 			 peer->bus ? peer->bus->number : 0,
 			 PCI_SLOT(peer->devfn),
@@ -1541,12 +1542,12 @@ static int nvfs_map(nvfs_ioctl_map_t *input_param)
 		goto error;
 	}
 
-	nvfs_dbg("mmap gpu_info=%p mgroup %p pdevinfo :"PCI_INFO_FMT
-	" ref %d IO state %s\n",
-		gpu_info, nvfs_mgroup,
-		PCI_INFO_ARGS(gpu_info->pdevinfo),
-		atomic_read(&nvfs_mgroup->ref),
-		nvfs_io_state_status(atomic_read(&gpu_info->io_state)));
+	nvfs_dbg("mmap gpu_info=%p mgroup %p pdevinfo :"PCI_INFO_FMT" ref %d IO state %s\n",
+		 gpu_info, nvfs_mgroup,
+		 PCI_INFO_DOMAIN(gpu_info->pdevinfo), PCI_INFO_BUS(gpu_info->pdevinfo),
+		 PCI_INFO_SLOT(gpu_info->pdevinfo), PCI_INFO_FUNC(gpu_info->pdevinfo),
+		 atomic_read(&nvfs_mgroup->ref),
+		 nvfs_io_state_status(atomic_read(&gpu_info->io_state)));
 
 	return 0;
 
