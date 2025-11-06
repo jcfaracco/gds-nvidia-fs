@@ -1549,6 +1549,8 @@ static int nvfs_map(nvfs_ioctl_map_t *input_param)
 		 atomic_read(&nvfs_mgroup->ref),
 		 nvfs_io_state_status(atomic_read(&gpu_info->io_state)));
 
+	nvfs_dbg("1\n");
+
 	return 0;
 
 error:
