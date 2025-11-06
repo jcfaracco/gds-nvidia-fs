@@ -103,6 +103,8 @@ The project includes a comprehensive self-test suite with automated test executi
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+If you need a comprehensive definition of this module, read the [module README.md](src/README.md).
+
 ### Quick Contribution Guide
 
 1. 🐛 **File an issue** for bugs or feature requests
