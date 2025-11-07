@@ -198,6 +198,7 @@ run_tests() {
     case "$test_suite" in
         "all")
             run_test_suite "all"
+            run_userspace_tests
             ;;
         "core")
             run_test_suite "core"
@@ -214,9 +215,15 @@ run_tests() {
         "stress")
             run_test_suite "stress"
             ;;
+        "userspace")
+            # Skip kernel tests, run only userspace
+            unload_module
+            run_userspace_tests
+            return 0
+            ;;
         *)
             log_error "Unknown test suite: $test_suite"
-            log_info "Available test suites: all, core, mmap, dma, memory, stress"
+            log_info "Available test suites: all, core, mmap, dma, memory, stress, userspace"
             exit 1
             ;;
     esac
@@ -271,12 +278,22 @@ case "${1:-}" in
     -c|--clean)
         cd "$SCRIPT_DIR"
         make clean
+        # Also clean userspace tests
+        userspace_dir="$(dirname "$SCRIPT_DIR")/userspace"
+        if [[ -d "$userspace_dir" ]]; then
+            cd "$userspace_dir"
+            make clean >/dev/null 2>&1 || true
+        fi
         log_success "Build artifacts cleaned"
         exit 0
         ;;
     -u|--unload)
         check_root
         unload_module
+        exit 0
+        ;;
+    --userspace)
+        run_userspace_tests
         exit 0
         ;;
     "")

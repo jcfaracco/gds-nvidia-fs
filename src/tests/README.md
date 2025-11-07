@@ -18,8 +18,12 @@ src/tests/
 │   ├── nvfs_stub_tests.c     # Stub functionality tests
 │   ├── nvfs_test.h           # Selftest headers
 │   └── Makefile              # Selftest build system
+├── userspace/                # Userspace tests (standalone programs)
+│   ├── nvfs_device_tests.c   # Device interface tests
+│   ├── nvfs_proc_tests.c     # Proc filesystem tests
+│   └── Makefile              # Userspace build system
 ├── scripts/                  # Test automation scripts
-│   └── test_runner.sh        # Selftest runner script
+│   └── test_runner.sh        # Test runner script
 ├── Makefile                  # Main build system
 └── README.md                 # This file
 ```
@@ -60,6 +64,22 @@ src/tests/
 - Handles actual GPU memory and file operations
 - Tests system behavior under stress
 
+### 🔌 Userspace Tests - System Interface Testing
+**Purpose**: Test NVFS interfaces from userspace perspective
+
+**Focus Areas**:
+- **Device interface validation** - Test character device operations and ioctls
+- **Proc filesystem testing** - Test /proc/driver/nvidia-fs/* interfaces
+- **Permission and access control** - Test userspace access restrictions
+- **Error handling from userspace** - Test error conditions and edge cases
+- **API compatibility** - Test userspace API stability and behavior
+
+**Characteristics**:
+- Standalone C programs that test from userspace
+- No kernel module dependencies for compilation
+- Tests actual device files and proc interfaces
+- Validates userspace-visible behavior and APIs
+
 ## Quick Start
 
 ### Running KUnit Tests (Unit Tests)
@@ -93,10 +113,27 @@ echo 'core' > /sys/kernel/debug/nvfs_test/run_tests
 echo 'stress' > /sys/kernel/debug/nvfs_test/run_tests
 ```
 
+### Running Userspace Tests (System Interface Tests)
+
+```bash
+# Build userspace tests
+cd src/tests/userspace
+make
+
+# Run device interface tests
+./nvfs_device_tests
+
+# Run proc filesystem tests  
+./nvfs_proc_tests
+
+# Run all userspace tests
+make test
+```
+
 ### Build All Tests
 
 ```bash
-# Build both unit and integration tests
+# Build all test frameworks (unit, integration, and userspace)
 make all
 
 # Clean all tests
@@ -139,6 +176,22 @@ make help
 - `nvfs_sustained_load_stress` - Long-duration load testing
 - `nvfs_extreme_conditions_stress` - Error handling under extreme conditions
 
+### Userspace System Interface Tests
+
+**Device Interface Tests** (`nvfs_device_tests.c`):
+- `test_device_detection` - NVFS device file detection and enumeration
+- `test_device_open_close` - Basic device open/close operations
+- `test_device_permissions` - Device file permission validation
+- `test_device_ioctl_interface` - IOCTL command interface testing
+- `test_device_error_conditions` - Error handling and edge cases
+
+**Proc Filesystem Tests** (`nvfs_proc_tests.c`):
+- `test_proc_file_exists` - Proc file presence validation
+- `test_proc_file_readable` - Proc file read access testing
+- `test_proc_file_content` - Proc file content format validation
+- `test_proc_stats_accuracy` - Statistics accuracy and consistency
+- `test_proc_file_permissions` - Proc file permission validation
+
 ## Configuration
 
 ### KUnit Test Configuration
@@ -179,6 +232,13 @@ echo 'all' > /sys/kernel/debug/nvfs_test/run_tests
 - System-level stress testing
 - End-to-end workflow validation
 
+**Use Userspace Tests for**:
+- Testing device file interfaces and ioctls
+- Validating proc filesystem interfaces
+- Testing userspace API stability
+- Validating permission and access control
+- Testing error conditions from userspace perspective
+
 ### Adding New Tests
 
 **Adding KUnit Tests**:
@@ -205,6 +265,31 @@ NVFS_TEST_DECLARE(nvfs_new_integration_test)
 }
 ```
 
+**Adding Userspace Tests**:
+```c
+static void test_new_feature(void)
+{
+    tests_run++;
+    printf("Testing new feature... ");
+    
+    // Test userspace interface
+    int fd = open("/dev/nvidia-fs", O_RDONLY);
+    if (fd < 0) {
+        TEST_SKIP("Device not available");
+        return;
+    }
+    
+    // Perform test operations
+    if (test_condition) {
+        TEST_PASS();
+    } else {
+        TEST_FAIL("Condition not met");
+    }
+    
+    close(fd);
+}
+```
+
 ## Best Practices
 
 ### Unit Testing (KUnit)
@@ -220,6 +305,13 @@ NVFS_TEST_DECLARE(nvfs_new_integration_test)
 - Include proper error handling
 - Test under various system conditions
 - Provide informative logging
+
+### Userspace Testing
+- Check device file availability before testing
+- Test both success and error paths
+- Validate permissions and access control
+- Include clear test result reporting
+- Handle missing interfaces gracefully
 
 ## Debugging
 
