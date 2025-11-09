@@ -1,0 +1,27 @@
+[  619.272398] NVFS_TEST: Running test suite: NVFS Stress Tests
+[  619.272408] NVFS_TEST: Running test: nvfs_concurrent_stress - Concurrent Access Stress
+[  619.272410] NVFS_TEST: Starting concurrent stress test with 4 threads
+[  619.323518] NVFS_TEST: Concurrent stress completed. 10000/10000 operations successful in 51 jiffies
+[  619.323527] NVFS_TEST: PASS - nvfs_concurrent_stress
+[  619.323529] NVFS_TEST: Running test: nvfs_memory_fragmentation_stress - Memory Fragmentation Stress
+[  619.323532] NVFS_TEST: Testing memory fragmentation handling
+[  619.323740] NVFS_TEST: Allocated 100 large folios
+[  619.324042] NVFS_TEST: Allocated 1000 small folios in fragmented memory
+[  619.324075] NVFS_TEST: PASS - nvfs_memory_fragmentation_stress
+[  619.324076] NVFS_TEST: Running test: nvfs_sustained_load_stress - Sustained Load Stress
+[  619.324077] NVFS_TEST: Starting sustained load test (10 second duration)
+[  629.334010] NVFS_TEST: Sustained load test completed. 126549832/126549832 operations successful
+[  629.334015] NVFS_TEST_FAIL: Success rate below 70% - expected > 70, got -1 at nvfs_stress_tests.c:255
+[  629.334016] NVFS_TEST: FAIL - nvfs_sustained_load_stress
+[  629.334017] NVFS_TEST: Running test: nvfs_extreme_conditions_stress - Extreme Conditions Stress
+[  629.334018] NVFS_TEST: Testing extreme allocation conditions
+[  629.348754] NVFS_TEST: Under extreme conditions: 0 failed large allocs, 0 successful NVFS ops
+[  629.348756] NVFS_TEST_FAIL: NVFS failed under extreme conditions - expected > 10, got 0 at nvfs_stress_tests.c:300
+[  629.348757] NVFS_TEST: FAIL - nvfs_extreme_conditions_stress
+[  629.348757] NVFS_TEST: ========== TEST RESULTS ==========
+[  629.348758] NVFS_TEST: Total tests: 4
+[  629.348759] NVFS_TEST: Passed: 2
+[  629.348759] NVFS_TEST: Failed: 2
+[  629.348759] NVFS_TEST: Skipped: 0
+[  629.348759] NVFS_TEST: Elapsed time: 10066 jiffies (10066 ms)
+[  629.348760] NVFS_TEST: =================================

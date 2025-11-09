@@ -9,6 +9,8 @@ TEST_MODULE="nvfs_selftest"
 DEBUGFS_PATH="/sys/kernel/debug/nvfs_test/run_tests"
 RESULTS_PATH="/sys/kernel/debug/nvfs_test/run_tests"
 
+declare -a KUNIT_TESTS=("core" "stress")
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -56,18 +58,19 @@ check_debugfs() {
 # Build test module
 build_tests() {
     log_info "Building NVFS self-tests..."
-    cd "$SCRIPT_DIR"
+    cd "$SCRIPT_DIR"/..
     make clean >/dev/null 2>&1 || true
-    if make modules; then
+    if CONFIG_KUNIT=y CONFIG_NVFS_KUNIT_TEST_CORE=m CONFIG_NVFS_KUNIT_TEST_STRESS=m make all; then
         log_success "Test module built successfully"
     else
         log_error "Failed to build test module"
         exit 1
     fi
+    cd -
 }
 
 # Load test module
-load_module() {
+load_selftests_module() {
     log_info "Loading test module..."
     
     # Unload if already loaded
@@ -76,7 +79,7 @@ load_module() {
         rmmod "$TEST_MODULE" || true
     fi
     
-    if insmod "${TEST_MODULE}.ko"; then
+    if insmod selftests/"${TEST_MODULE}.ko"; then
         log_success "Test module loaded successfully"
     else
         log_error "Failed to load test module"
@@ -92,14 +95,58 @@ load_module() {
     fi
 }
 
+# Load kunit test modules
+load_kunit_modules() {
+    for TEST in $KUNIT_TESTS; do
+        log_info "Loading ${TEST} test module..."
+
+        # Unload if already loaded
+        if lsmod | grep -q "nvfs_${TEST}_kunit"; then
+            log_info "Test module nvfs_${TEST}_kunit already loaded, unloading first..."
+            rmmod "nvfs_${TEST}_kunit" || true
+        fi
+
+        if insmod kunit/"nvfs_${TEST}_kunit.ko"; then
+            log_success "Test module loaded successfully"
+        else
+            log_error "Failed to load test module"
+            exit 1
+        fi
+    done
+}
+
+# Load all test modules
+load_modules() {
+    load_selftests_module
+    load_kunit_modules
+}
+
 # Unload test module
-unload_module() {
+unload_selftests_module() {
     log_info "Unloading test module..."
     if lsmod | grep -q "$TEST_MODULE"; then
         rmmod "$TEST_MODULE" || {
             log_warning "Failed to unload test module cleanly"
         }
     fi
+}
+
+# Unload test module
+unload_kunit_modules() {
+    for TEST in $KUNIT_TESTS; do
+        log_info "Unloading $TEST test module..."
+        if lsmod | grep -q "nvfs_${TEST}_kunit"; then
+            rmmod "nvfs_${TEST}_kunit" || {
+                log_warning "Failed to unload test nvfs_${TEST}_kunit module cleanly"
+            }
+        fi
+    done
+}
+
+# Unload test modules
+unload_modules() {
+    unload_selftests_module
+    unload_kunit_modules
 }
 
 # Run specific test suite
@@ -144,7 +191,7 @@ run_tests() {
     check_root
     check_debugfs
     build_tests
-    load_module
+    load_modules
     
     log_info "Starting NVFS self-tests..."
     
@@ -185,7 +232,7 @@ run_tests() {
     show_dmesg_results
     
     # Cleanup
-    unload_module
+    unload_modules
     
     log_success "NVFS self-tests completed"
 }

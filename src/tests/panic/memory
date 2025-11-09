@@ -1,0 +1,79 @@
+[  583.498662] NVFS_TEST: Running test suite: NVFS Memory Tests (Stubs)
+[  583.498672] NVFS_TEST: Stub test suite setup
+[  583.498674] NVFS_TEST: Running test: memory_basic_stub - Basic memory management (stub)
+[  583.498676] NVFS_TEST: Memory basic test stub - placeholder
+[  583.498677] NVFS_TEST: PASS - memory_basic_stub
+[  583.498679] NVFS_TEST: Running test: memory_advanced_stub - Advanced memory management (stub)
+[  583.498680] NVFS_TEST: Memory advanced test stub - placeholder
+[  583.498681] NVFS_TEST: PASS - memory_advanced_stub
+[  583.498682] NVFS_TEST: Running test: (null) - (null)
+[  583.498687] BUG: kernel NULL pointer dereference, address: 0000000000000000
+[  583.498689] #PF: supervisor instruction fetch in kernel mode
+[  583.498690] #PF: error_code(0x0010) - not-present page
+[  583.498692] PGD 0 P4D 0 
+[  583.498695] Oops: Oops: 0010 [#3] SMP NOPTI
+[  583.498701] CPU: 0 UID: 0 PID: 14523 Comm: bash Tainted: G      D    OE       6.17.4-200.fc42.x86_64 #1 PREEMPT(lazy) 
+[  583.498706] Tainted: [D]=DIE, [O]=OOT_MODULE, [E]=UNSIGNED_MODULE
+[  583.498707] Hardware name: ASRock X870 Pro-A WiFi/X870 Pro-A WiFi, BIOS 3.30 06/16/2025
+[  583.498709] RIP: 0010:0x0
+[  583.498732] Code: Unable to access opcode bytes at 0xffffffffffffffd6.
+[  583.498733] RSP: 0018:ffffcec08b1b7b78 EFLAGS: 00010246
+[  583.498736] RAX: 0000000000000000 RBX: ffffffffc3fcf670 RCX: 0000000000000027
+[  583.498738] RDX: 0000000000000000 RSI: 0000000000000001 RDI: ffff88e15da1cf80
+[  583.498739] RBP: ffffffffc3fcf580 R08: 0000000000000000 R09: ffffcec08b1b7a30
+[  583.498740] R10: ffffffffadf3ba88 R11: 00000000ffffdfff R12: 0000000000000002
+[  583.498742] R13: 0000000000000007 R14: ffffcec08b1b7ce8 R15: ffff88da46bbcd80
+[  583.498743] FS:  00007f4f34023740(0000) GS:ffff88e1aec45000(0000) knlGS:0000000000000000
+[  583.498745] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  583.498747] CR2: ffffffffffffffd6 CR3: 00000001abed9000 CR4: 0000000000f50ef0
+[  583.498749] PKRU: 55555554
+[  583.498750] Call Trace:
+[  583.498752]  <TASK>
+[  583.498756]  nvfs_run_test_suite+0xc0/0x1e4 [nvfs_selftest]
+[  583.498764]  nvfs_test_write.cold+0x87/0xe4 [nvfs_selftest]
+[  583.498768]  full_proxy_write+0x51/0x80
+[  583.498774]  vfs_write+0xcb/0x480
+[  583.498779]  ? filp_close+0x25/0x40
+[  583.498783]  ? do_dup2+0xae/0x160
+[  583.498786]  ? ksys_dup3+0x67/0xf0
+[  583.498789]  ksys_write+0x73/0xf0
+[  583.498792]  do_syscall_64+0x7e/0x250
+[  583.498796]  ? do_filp_open+0xd8/0x180
+[  583.498800]  ? do_sigaction+0x161/0x4b0
+[  583.498805]  ? filp_flush+0x5b/0x80
+[  583.498808]  ? __x64_sys_close+0x3d/0x80
+[  583.498810]  ? do_syscall_64+0xb6/0x250
+[  583.498812]  ? __x64_sys_openat+0x61/0xa0
+[  583.498815]  ? do_syscall_64+0xb6/0x250
+[  583.498816]  ? __x64_sys_pselect6+0x4a/0x70
+[  583.498820]  ? do_syscall_64+0xb6/0x250
+[  583.498821]  ? do_syscall_64+0xb6/0x250
+[  583.498823]  ? __rseq_handle_notify_resume+0x39/0x60
+[  583.498827]  ? irqentry_exit_to_user_mode+0x2c/0x1c0
+[  583.498830]  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+[  583.498834] RIP: 0033:0x7f4f3409477e
+[  583.498838] Code: 4d 89 d8 e8 d4 bc 00 00 4c 8b 5d f8 41 8b 93 08 03 00 00 59 5e 48 83 f8 fc 74 11 c9 c3 0f 1f 80 00 00 00 00 48 8b 45 10 0f 05 <c9> c3 83 e2 39 83 fa 08 75 e7 e8 13 ff ff ff 0f 1f 00 f3 0f 1e fa
+[  583.498840] RSP: 002b:00007fff61cd44f0 EFLAGS: 00000202 ORIG_RAX: 0000000000000001
+[  583.498842] RAX: ffffffffffffffda RBX: 0000000000000007 RCX: 00007f4f3409477e
+[  583.498843] RDX: 0000000000000007 RSI: 0000560e534761a0 RDI: 0000000000000001
+[  583.498844] RBP: 00007fff61cd4500 R08: 0000000000000000 R09: 0000000000000000
+[  583.498845] R10: 0000000000000000 R11: 0000000000000202 R12: 0000000000000007
+[  583.498847] R13: 0000560e534761a0 R14: 00007f4f3420f5c0 R15: 0000000000000000
+[  583.498850]  </TASK>
+[  583.498851] Modules linked in: nvfs_selftest(OE) hid_logitech_hidpp overlay uinput uhid rfcomm snd_seq_dummy snd_hrtimer nft_masq nft_reject_ipv4 act_csum cls_u32 sch_htb nf_nat_tftp nf_conntrack_tftp bridge stp llc nf_conntrack_netbios_ns nf_conntrack_broadcast nft_fib_inet nft_fib_ipv4 nft_fib_ipv6 nft_fib nft_reject_inet nf_reject_ipv4 nf_reject_ipv6 nft_reject nft_ct nft_chain_nat nf_nat nf_conntrack nf_defrag_ipv6 nf_defrag_ipv4 nvidia_uvm(OE) nf_tables sunrpc qrtr bnep vfat fat amd_atl intel_rapl_msr intel_rapl_common rtw89_8922ae rtw89_8922a rtw89_pci snd_hda_codec_alc662 rtw89_core edac_mce_amd snd_hda_codec_realtek_lib snd_hda_codec_generic snd_hda_codec_atihdmi snd_hda_codec_nvhdmi snd_hda_codec_hdmi kvm_amd nvidia_drm(OE) snd_hda_intel btusb nct6775_platform(OE) nvidia_modeset(OE) mac80211 kvm snd_hda_codec nct6775_core btrtl hwmon_vid btintel snd_hda_core btbcm nvidia_fs(OE) spd5118 btmtk snd_intel_dspcfg libarc4 i2c_piix4 irqbypass snd_intel_sdw_acpi r8169 snd_seq bluetooth rapl wmi_bmof pcspkr joydev
+[  583.498895]  snd_hwdep i2c_smbus k10temp snd_seq_device cfg80211 nvidia(OE) snd_pcm rfkill realtek gpio_amdpt snd_timer gpio_generic snd soundcore dm_multipath loop nfnetlink zram lz4hc_compress lz4_compress amdgpu amdxcp i2c_algo_bit drm_ttm_helper ttm drm_exec gpu_sched drm_suballoc_helper drm_panel_backlight_quirks drm_buddy drm_display_helper nvme thunderbolt nvme_core polyval_clmulni cec ghash_clmulni_intel sp5100_tco nvme_keyring nvme_auth video wmi scsi_dh_rdac scsi_dh_emc scsi_dh_alua i2c_dev fuse
+[  583.498922] CR2: 0000000000000000
+[  583.498924] ---[ end trace 0000000000000000 ]---
+[  583.498926] RIP: 0010:0x0
+[  583.498930] Code: Unable to access opcode bytes at 0xffffffffffffffd6.
+[  583.498931] RSP: 0018:ffffcec0a36c7a48 EFLAGS: 00010246
+[  583.498932] RAX: 0000000000000000 RBX: ffffffffc3fcf730 RCX: 0000000000000027
+[  583.498934] RDX: 0000000000000000 RSI: 0000000000000001 RDI: ffff88e15e41cf80
+[  583.498935] RBP: ffffffffc3fcf600 R08: 0000000000000000 R09: ffffcec0a36c7900
+[  583.498936] R10: ffffffffadf3ba88 R11: 00000000ffffdfff R12: 0000000000000002
+[  583.498937] R13: 0000000000000005 R14: ffffcec0a36c7bb8 R15: ffff88da46bbcd80
+[  583.498938] FS:  00007f4f34023740(0000) GS:ffff88e1aec45000(0000) knlGS:0000000000000000
+[  583.498939] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  583.498940] CR2: ffffffffffffffd6 CR3: 00000001abed9000 CR4: 0000000000f50ef0
+[  583.498942] PKRU: 55555554
+[  583.498943] note: bash[14523] exited with irqs disabled
