@@ -21,3 +21,9 @@ obj-$(CONFIG_NVFS_KUNIT_TEST_CORE) += nvfs_core_kunit.o
 
 # Stress and memory pressure tests  
 obj-$(CONFIG_NVFS_KUNIT_TEST_STRESS) += nvfs_stress_kunit.o
+
+# Folio-native operations tests
+obj-$(CONFIG_NVFS_KUNIT_TEST_FOLIO) += nvfs_folio_kunit.o
+
+# Memory mapping operations tests
+obj-$(CONFIG_NVFS_KUNIT_TEST_MMAP) += nvfs_mmap_kunit.o

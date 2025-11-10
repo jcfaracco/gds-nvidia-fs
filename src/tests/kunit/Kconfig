@@ -36,3 +36,27 @@ config NVFS_KUNIT_TEST_STRESS
 	  simulation, rapid allocation cycles, and edge case testing.
 	  
 	  These tests are more intensive and may take longer to run.
+
+config NVFS_KUNIT_TEST_FOLIO
+	tristate "NVFS folio-native operations KUnit tests" if !KUNIT_ALL_TESTS
+	depends on NVFS_KUNIT_TEST
+	default NVFS_KUNIT_TEST
+	help
+	  This enables KUnit tests for NVFS folio-native operations including
+	  64KB GPU page allocations, folio boundary calculations, DMA state
+	  transitions, and modernized memory management patterns.
+	  
+	  These tests validate the folio-based memory operations used for
+	  GPU Direct Storage and ensure compatibility with modern kernel APIs.
+
+config NVFS_KUNIT_TEST_MMAP
+	tristate "NVFS memory mapping operations KUnit tests" if !KUNIT_ALL_TESTS
+	depends on NVFS_KUNIT_TEST
+	default NVFS_KUNIT_TEST
+	help
+	  This enables KUnit tests for NVFS memory mapping operations including
+	  VMA management, shadow buffer allocation, reference counting, and
+	  mmap/munmap functionality.
+	  
+	  These tests validate the memory mapping subsystem used for GPU
+	  Direct Storage shadow buffers and ensure correct VMA handling.

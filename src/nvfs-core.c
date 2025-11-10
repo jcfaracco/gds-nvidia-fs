@@ -576,6 +576,7 @@ int nvfs_get_dma(void *device, struct page *page, void **gpu_base_dma, int dma_l
 {
 	struct nvidia_p2p_dma_mapping *dma_mapping;
 	struct pci_dev *peer = device;
+	struct folio *folio = NULL;
 	dma_addr_t dma_base_addr, dma_start_addr;
 	unsigned long gpu_page_index = ULONG_MAX;
 	struct nvfs_io *nvfsio;
@@ -593,8 +594,9 @@ int nvfs_get_dma(void *device, struct page *page, void **gpu_base_dma, int dma_l
 	// Check and get the metadata in page if in correct state,
 	// otherwise bailout.
 
-	struct folio *folio = page_folio(page);
+	folio = page_folio(page);
 	nvfs_mgroup = nvfs_mgroup_from_folio(folio);
+
 	if (nvfs_mgroup == NULL)
 		goto bad_request;
 
