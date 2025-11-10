@@ -331,15 +331,16 @@ static int nvfs_blk_rq_map_sg_internal(struct request_queue *q,
 #else
 			nvfs_mgroup_ptr_t nvfs_mgroup;
 
-			nvfs_mgroup = nvfs_mgroup_from_page(bvec.bv_page); // ref dropped using CHECK_AND_PUT_MGROUP
+			struct folio *bvec_folio = page_folio(bvec.bv_page);
+			nvfs_mgroup = nvfs_mgroup_from_folio(bvec_folio); // ref dropped using CHECK_AND_PUT_MGROUP
 			if (IS_ERR(nvfs_mgroup)) {
-				nvfs_err("%s:%d mgroup_get_page error\n", __func__, __LINE__);
+				nvfs_err("%s:%d mgroup_get_folio error\n", __func__, __LINE__);
 				return NVFS_IO_ERR;
 			}
 
 			curr_page_gpu = (nvfs_mgroup != NULL);
 			if (nvfs_mgroup != NULL) {
-				if (nvfs_mgroup_metadata_set_dma_state(bvec.bv_page, nvfs_mgroup, bvec.bv_len, bvec.bv_offset) != 0) {
+				if (nvfs_mgroup_metadata_set_dma_state_folio(bvec_folio, nvfs_mgroup, bvec.bv_len, bvec.bv_offset) != 0) {
 					nvfs_err("%s:%d mgroup_set_dma error\n", __func__, __LINE__);
 					return NVFS_IO_ERR;
 				}
@@ -412,8 +413,8 @@ static int nvfs_blk_rq_map_sg_internal(struct request_queue *q,
 			if (!nvme && (sg != NULL)) {
 				// check queue segment limits
 				if ((sg->length + bvec.bv_len) > queue_max_segment_size(q)) {
-					curr_phys_addr = nvfs_mgroup_get_gpu_physical_address(nvfs_mgroup,
-							bvec.bv_page);
+					curr_phys_addr = nvfs_mgroup_get_gpu_physical_address_folio(nvfs_mgroup,
+							bvec_folio);
 					CHECK_AND_PUT_MGROUP(nvfs_mgroup);
 					nvfs_mgroup = NULL;
 						goto new_segment;
@@ -429,12 +430,12 @@ static int nvfs_blk_rq_map_sg_internal(struct request_queue *q,
 				curr_phys_addr = nvfs_get_simulated_address(key, index);
 				index += 1;
 			} else {
-				curr_phys_addr = nvfs_mgroup_get_gpu_physical_address(nvfs_mgroup, bvec.bv_page);
+				curr_phys_addr = nvfs_mgroup_get_gpu_physical_address_folio(nvfs_mgroup, bvec_folio);
 			}
 #else
-			curr_phys_addr = nvfs_mgroup_get_gpu_physical_address(nvfs_mgroup, bvec.bv_page);
+			curr_phys_addr = nvfs_mgroup_get_gpu_physical_address_folio(nvfs_mgroup, bvec_folio);
 #endif
-			nvfs_mgroup_get_gpu_index_and_off(nvfs_mgroup, bvec.bv_page, &gpu_page_index, &pgoff);
+			nvfs_mgroup_get_gpu_index_and_off_folio(nvfs_mgroup, bvec_folio, &gpu_page_index, &pgoff);
 			// We no longer need nvfs_mgroup from this point onwards
 			CHECK_AND_PUT_MGROUP(nvfs_mgroup);
 			nvfs_mgroup = NULL;
@@ -560,15 +561,17 @@ static int nvfs_dma_map_sg_attrs_internal(struct device *device,
 			ret = nvfs_get_dma(to_pci_dev(device), sg_page(sg), &gpu_base_dma, -1);
 			current->plug = plug;
 		} else {
-			ret = nvfs_get_dma(to_pci_dev(device), sg_page(sg), &gpu_base_dma, sg->length);
+			struct page *sg_page_ptr = sg_page(sg);
+			struct folio *sg_folio = page_folio(sg_page_ptr);
+			ret = nvfs_get_dma(to_pci_dev(device), sg_page_ptr, &gpu_base_dma, sg->length);
 			if (ret == 0) {
-				nvfs_mgroup = nvfs_mgroup_from_page(sg_page(sg));
+				nvfs_mgroup = nvfs_mgroup_from_folio(sg_folio);
 				if (nvfs_mgroup == NULL) {
 					nvfs_err("%s:%d empty mgroup\n", __func__, __LINE__);
 					return NVFS_IO_ERR;
 				}
 				// We have dma mapping set up
-				if (nvfs_mgroup_metadata_set_dma_state(sg_page(sg), nvfs_mgroup, sg->length, sg->offset) < 0) {
+				if (nvfs_mgroup_metadata_set_dma_state_folio(sg_folio, nvfs_mgroup, sg->length, sg->offset) < 0) {
 					nvfs_err("%s:%d mgroup_set_dma error\n", __func__, __LINE__);
 					ret = NVFS_IO_ERR;
 				}
@@ -688,7 +691,8 @@ static int nvfs_dma_unmap_sg(struct device *device,
 		if (unlikely(page == NULL))
 			continue;
 
-		ret = nvfs_check_gpu_page_and_error(page, sg->offset, sg->length);
+		struct folio *folio = page_folio(page);
+		ret = nvfs_check_gpu_folio_and_error(folio, sg->offset, sg->length);
 		if (unlikely(ret == -1))
 			return NVFS_IO_ERR;
 
@@ -783,10 +787,11 @@ static int nvfs_get_gpu_sglist_rdma_info(struct scatterlist *sglist,
 		return NVFS_IO_ERR;
 	}
 
+	struct folio *folio = page_folio(page);
 #ifdef NVFS_TEST_GPFS_CALLBACK
-	prev_mgroup = nvfs_mgroup_get((page_folio(page)->index >> NVFS_MAX_SHADOW_PAGES_ORDER));
+	prev_mgroup = nvfs_mgroup_get((folio->index >> NVFS_MAX_SHADOW_PAGES_ORDER));
 #else
-	prev_mgroup = nvfs_mgroup_from_page(page);
+	prev_mgroup = nvfs_mgroup_from_folio(folio);
 #endif
 
 	if (IS_ERR(prev_mgroup)) {
@@ -849,9 +854,10 @@ static int nvfs_get_gpu_sglist_rdma_info(struct scatterlist *sglist,
 			return NVFS_BAD_REQ;
 		}
 
-		nvfs_dbg("%s: page %p\n", __func__, page);
+		struct folio *page_folio = page_folio(page);
+		nvfs_dbg("%s: page %p, folio %p\n", __func__, page, page_folio);
 #ifdef NVFS_TEST_GPFS_CALLBACK
-		nvfs_mgroup = nvfs_mgroup_get((page_folio(page)->index >> NVFS_MAX_SHADOW_PAGES_ORDER));
+		nvfs_mgroup = nvfs_mgroup_get((page_folio->index >> NVFS_MAX_SHADOW_PAGES_ORDER));
 #else
 		nvfs_mgroup = nvfs_mgroup_from_page_range(page, nblocks, sg->offset);
 #endif

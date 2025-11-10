@@ -593,7 +593,8 @@ int nvfs_get_dma(void *device, struct page *page, void **gpu_base_dma, int dma_l
 	// Check and get the metadata in page if in correct state,
 	// otherwise bailout.
 
-	nvfs_mgroup = nvfs_mgroup_from_page(page);
+	struct folio *folio = page_folio(page);
+	nvfs_mgroup = nvfs_mgroup_from_folio(folio);
 	if (nvfs_mgroup == NULL)
 		goto bad_request;
 
@@ -602,7 +603,7 @@ int nvfs_get_dma(void *device, struct page *page, void **gpu_base_dma, int dma_l
 
 	// Get the gpu_index and page offset within the gpu page
 	// for this shadow page.
-	nvfs_mgroup_get_gpu_index_and_off(nvfs_mgroup, page,
+	nvfs_mgroup_get_gpu_index_and_off_folio(nvfs_mgroup, folio,
 				&gpu_page_index, &pgoff);
 	nvfsio = &nvfs_mgroup->nvfsio;
 	gpu_info = &nvfs_mgroup->gpu_info;
@@ -617,8 +618,8 @@ int nvfs_get_dma(void *device, struct page *page, void **gpu_base_dma, int dma_l
 	if (dma_mapping == NULL)
 		goto exit;
 
-	nvfs_dbg("Found GPU Mapping for page index %lx, %lx gpu_page_index %lu/%u page_offset %lx\n",
-		 page_folio(page)->index,
+	nvfs_dbg("Found GPU Mapping for folio index %lx, %lx gpu_page_index %lu/%u page_offset %lx\n",
+		 folio->index,
 		 (unsigned long) nvfsio, gpu_page_index,
 		 (dma_mapping->entries - 1),
 		 (unsigned long) pgoff);

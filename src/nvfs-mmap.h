@@ -151,7 +151,8 @@ struct nvfs_gpu_args {
 struct nvfs_io_metadata {
 	u64 nvfs_start_magic;                       // start magic of metadata
 	enum nvfs_block_state nvfs_state;
-	struct page *page;
+	struct folio *folio;                        // folio containing this block
+	u16 folio_offset;                           // offset within folio for this block
 } __packed __aligned(8);
 
 typedef struct nvfs_rdma_info {
@@ -177,7 +178,8 @@ struct nvfs_io_mgroup {
 	u64 cpu_base_vaddr;
 	unsigned long base_index;
 	unsigned long nvfs_blocks_count;
-	struct page **nvfs_ppages;
+	struct folio **nvfs_folios;                 // array of folios (replaces nvfs_ppages)
+	unsigned long nvfs_folios_count;            // number of folios allocated
 	struct nvfs_io_metadata *nvfs_metadata;
 	struct nvfs_gpu_args gpu_info;
 	nvfs_io_t nvfsio;
@@ -199,6 +201,13 @@ nvfs_mgroup_ptr_t nvfs_mgroup_get(unsigned long base_index);
 void nvfs_mgroup_put(nvfs_mgroup_ptr_t nvfs_mgroup);
 void nvfs_mgroup_put_dma(nvfs_mgroup_ptr_t nvfs_mgroup);
 void nvfs_mgroup_check_and_set(nvfs_mgroup_ptr_t nvfs_mgroup, enum nvfs_block_state state, bool validate, bool update_nvfsio);
+nvfs_mgroup_ptr_t nvfs_mgroup_from_folio(struct folio *folio);
+nvfs_mgroup_ptr_t nvfs_mgroup_from_folio_range(struct folio *folio, int nblocks, unsigned int start_offset);
+bool nvfs_is_gpu_folio(struct folio *folio);
+unsigned int nvfs_gpu_index_from_folio(struct folio *folio);
+int nvfs_check_gpu_folio_and_error(struct folio *folio, unsigned int offset, unsigned int len);
+
+/* Legacy page-based compatibility wrappers */
 nvfs_mgroup_ptr_t nvfs_mgroup_from_page(struct page *page);
 nvfs_mgroup_ptr_t nvfs_mgroup_from_page_range(struct page *page, int nblocks, unsigned int start_offset);
 bool nvfs_is_gpu_page(struct page *page);
@@ -210,12 +219,22 @@ int nvfs_mgroup_fill_mpages(nvfs_mgroup_ptr_t nvfs_mgroup, unsigned int nr_block
 nvfs_mgroup_ptr_t nvfs_mgroup_pin_shadow_pages(u64 cpuvaddr, unsigned long length);
 void nvfs_mgroup_unpin_shadow_pages(nvfs_mgroup_ptr_t nvfs_mgroup);
 nvfs_mgroup_ptr_t nvfs_get_mgroup_from_vaddr(u64 cpuvaddr);
+void nvfs_mgroup_get_gpu_index_and_off_folio(nvfs_mgroup_ptr_t nvfs_mgroup, struct folio *folio, unsigned long *gpu_index, pgoff_t *offset);
+uint64_t nvfs_mgroup_get_gpu_physical_address_folio(nvfs_mgroup_ptr_t nvfs_mgroup, struct folio *folio);
+
+/* Legacy page-based compatibility wrappers */
 void nvfs_mgroup_get_gpu_index_and_off(nvfs_mgroup_ptr_t nvfs_mgroup, struct page *page, unsigned long *gpu_index, pgoff_t *offset);
 uint64_t nvfs_mgroup_get_gpu_physical_address(nvfs_mgroup_ptr_t nvfs_mgroup, struct page *page);
 void nvfs_mgroup_put_pending_mgroups(void);
 void nvfs_mgroup_get_ref(nvfs_mgroup_ptr_t mgroup);
 bool nvfs_mgroup_put_ref(nvfs_mgroup_ptr_t mgroup);
 int is_nvfs_metadata_block_fill_needed(void);
+int nvfs_mgroup_metadata_set_dma_state_folio(struct folio *folio,
+					     struct nvfs_io_mgroup *nvfs_mgroup,
+					     unsigned int bv_len,
+					     unsigned int bv_offset);
+
+/* Legacy page-based compatibility wrapper */
 int nvfs_mgroup_metadata_set_dma_state(struct page *page,
 				       struct nvfs_io_mgroup *nvfs_mgroup,
 				       unsigned int bv_len,
