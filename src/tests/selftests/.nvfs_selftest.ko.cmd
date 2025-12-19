@@ -1,0 +1,1 @@
+savedcmd_nvfs_selftest.ko := ld -r -m elf_x86_64 -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T /usr/src/kernels/6.17.4-200.fc42.x86_64/scripts/module.lds -o nvfs_selftest.ko nvfs_selftest.o nvfs_selftest.mod.o .module-common.o

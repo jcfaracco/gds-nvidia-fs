@@ -789,7 +789,7 @@ static int nvfs_get_gpu_sglist_rdma_info(struct scatterlist *sglist,
 
 	struct folio *folio = page_folio(page);
 #ifdef NVFS_TEST_GPFS_CALLBACK
-	prev_mgroup = nvfs_mgroup_get((folio->index >> NVFS_MAX_SHADOW_PAGES_ORDER));
+	prev_mgroup = nvfs_mgroup_get((NVFS_PAGE_INDEX(page->index) >> NVFS_MAX_SHADOW_PAGES_ORDER));
 #else
 	prev_mgroup = nvfs_mgroup_from_folio(folio);
 #endif
@@ -857,7 +857,7 @@ static int nvfs_get_gpu_sglist_rdma_info(struct scatterlist *sglist,
 		struct folio *page_folio = page_folio(page);
 		nvfs_dbg("%s: page %p, folio %p\n", __func__, page, page_folio);
 #ifdef NVFS_TEST_GPFS_CALLBACK
-		nvfs_mgroup = nvfs_mgroup_get((page_folio->index >> NVFS_MAX_SHADOW_PAGES_ORDER));
+		nvfs_mgroup = nvfs_mgroup_get((NVFS_PAGE_INDEX(page->index) >> NVFS_MAX_SHADOW_PAGES_ORDER));
 #else
 		nvfs_mgroup = nvfs_mgroup_from_page_range(page, nblocks, sg->offset);
 #endif
